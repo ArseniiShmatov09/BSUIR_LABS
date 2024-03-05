@@ -43,12 +43,14 @@ def simplex_method_begin_stage(m, n, A, b):
     new_optimal_plan = main_simplex_method(m, n, A_tilda, b, c_T_tilda, x_T_tilda, B, A_B, A_B_inv, [], [])
     
     x_T_tilda = new_optimal_plan[0]
+    print(new_optimal_plan)
     B = new_optimal_plan[1]
 
     A_B = A_tilda[:, [col_idx - 1 for col_idx in B if col_idx != -1]]
 
     A_B_inv = np.linalg.inv(A_B)
 
+    print(x_T_tilda)
     for i in range(0, m):
         if x_T_tilda[n + i] != 0:
             return ("Задача не совместна")
@@ -124,14 +126,15 @@ def main():
 
 
     result = simplex_method_begin_stage(m, n, A, b)
-    print("x_T:")
-    print(result[0])
-    print("B:")
-    print(result[1])
-    print("A:")
-    print(result[2])
-    print("b:")
-    print(result[3])
+    print(result)
+    # print("x_T:")
+    # print(result[0])
+    # print("B:")
+    # print(result[1])
+    # print("A:")
+    # print(result[2])
+    # print("b:")
+    # print(result[3])
 
 
 if __name__ == "__main__":

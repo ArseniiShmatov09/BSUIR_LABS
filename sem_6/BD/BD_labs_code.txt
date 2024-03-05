@@ -1,0 +1,298 @@
+LAB 1:
+
+1:
+
+CREATE TABLE MyTable (
+    id NUMBER,
+    val NUMBER
+);
+
+***********************************************************************************************************************
+2:
+
+DECLARE
+    v_random_val NUMBER;
+BEGIN
+    FOR i IN 1..10000 LOOP
+        v_random_val := ROUND(DBMS_RANDOM.VALUE * 100);
+        INSERT INTO MyTable (id, val) VALUES (i, v_random_val);
+    END LOOP;
+    
+    COMMIT;
+END;
+
+***********************************************************************************************************************
+
+3:
+
+CREATE OR REPLACE FUNCTION checkEvenOddCount(table_name IN VARCHAR2) RETURN VARCHAR2 IS
+    v_even_count NUMBER := 0;
+    v_odd_count NUMBER := 0;
+BEGIN
+    FOR rec IN (SELECT val FROM MyTable) LOOP
+        IF MOD(rec.val, 2) = 0 THEN
+            v_even_count := v_even_count + 1;
+        ELSE
+            v_odd_count := v_odd_count + 1;
+        END IF;
+    END LOOP;
+
+    IF v_even_count > v_odd_count THEN
+        RETURN 'TRUE';
+    ELSIF v_even_count < v_odd_count THEN
+        RETURN 'FALSE';
+    ELSE
+        RETURN 'EQUAL';
+    END IF;
+END;
+
+SELECT checkEvenOddCount('MyTable') AS result FROM dual;
+
+***********************************************************************************************************************
+(функция для подсчета чет и нечет чисел)
+
+CREATE OR REPLACE FUNCTION countEvenOdd(table_name IN VARCHAR2)
+RETURN VARCHAR2 IS
+    v_even_count NUMBER := 0;
+    v_odd_count NUMBER := 0;
+BEGIN
+    FOR rec IN (SELECT val FROM MyTable) LOOP
+        IF MOD(rec.val, 2) = 0 THEN
+            v_even_count := v_even_count + 1;
+        ELSE
+            v_odd_count := v_odd_count + 1;
+        END IF;
+    END LOOP;
+
+    RETURN 'Even Count: ' || TO_CHAR(v_even_count) || ', Odd Count: ' || TO_CHAR(v_odd_count);
+END;
+
+SELECT countEvenOdd('MyTable') AS result FROM dual;
+
+***********************************************************************************************************************
+
+4:
+
+CREATE OR REPLACE FUNCTION generateInsertCommand(p_id IN NUMBER, p_val IN NUMBER)
+RETURN VARCHAR2 IS
+    v_insert_command VARCHAR2(4000);
+BEGIN
+    v_insert_command := 'INSERT INTO MyTable (id, val) VALUES (' || p_id || ', ' || p_val || ');';
+    RETURN v_insert_command;
+END;
+
+SELECT generateInsertCommand(1001, 5 ) AS result FROM dual;
+
+
+***********************************************************************************************************************
+
+5:
+
+CREATE OR REPLACE PROCEDURE insertRecord(
+    p_id IN NUMBER,
+    p_val IN NUMBER
+)
+IS
+BEGIN
+    INSERT INTO MyTable (id, val) VALUES (p_id, p_val);
+    COMMIT;
+END insertRecord;
+
+
+CREATE OR REPLACE PROCEDURE updateRecord(
+    p_id IN NUMBER,
+    p_new_val IN NUMBER
+)
+IS
+BEGIN
+    UPDATE MyTable SET val = p_new_val WHERE id = p_id;
+    COMMIT;
+END updateRecord;
+
+
+
+CREATE OR REPLACE PROCEDURE deleteRecord(
+    p_id IN NUMBER
+)
+IS
+BEGIN
+    DELETE FROM MyTable WHERE id = p_id;
+    COMMIT;
+END deleteRecord;
+
+EXECUTE insertRecord(2, 300); 
+EXECUTE updateRecord(2, 400);
+EXECUTE deleteRecord(2); 
+
+SELECT *
+FROM (
+    SELECT *
+    FROM MyTable
+    ORDER BY id DESC
+)
+WHERE ROWNUM <= 10; -- выводит последние 10 строк
+
+***********************************************************************************************************************
+6:
+
+CREATE OR REPLACE FUNCTION calculateTotalCompensation(
+    p_monthly_salary IN NUMBER,
+    p_annual_bonus_percent IN NUMBER
+)
+RETURN NUMBER
+IS
+    v_total_compensation NUMBER;
+    v_annual_bonus_pct NUMBER; 
+BEGIN
+    IF p_annual_bonus_percent < 0 OR p_annual_bonus_percent > 100 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Ошибка: процент премии должен быть в диапазоне от 0 до 100.');
+    END IF;
+
+    v_annual_bonus_pct := p_annual_bonus_percent / 100;
+
+    v_total_compensation := (1 + v_annual_bonus_pct) * 12 * p_monthly_salary;
+
+    RETURN v_total_compensation;
+END calculateTotalCompensation;
+/
+
+
+SELECT calculateTotalCompensation(1000, 5 ) AS result FROM dual;
+
+***********************************************************************************************************************
+***********************************************************************************************************************
+***********************************************************************************************************************
+
+LAB_02:
+
+1:
+CREATE TABLE Students (
+    Id INT PRIMARY KEY,
+    Name VARCHAR2(100),
+    Group_id INT,
+    FOREIGN KEY (Group_id) REFERENCES Groups(Id)
+);
+
+CREATE TABLE Groups (
+    Id INT PRIMARY KEY,
+    Name VARCHAR2(100),
+    C_val INT
+);
+
+***********************************************************************************************************************
+2:
+-- Триггер для проверки уникальности полей ID в таблице Students
+CREATE OR REPLACE TRIGGER check_student_id_unique 
+BEFORE INSERT ON Students
+FOR EACH ROW
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM Students
+    WHERE Id = :NEW.Id;
+
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Ошибка: Поле ID должно быть уникальным в таблице Students.');
+    END IF;
+END;
+
+
+INSERT INTO Students (Id, Name, Group_id) VALUES (1, 'dvdv', 1);
+
+
+-- Триггер для генерации автоинкрементного ключа для поля ID в таблице Students
+CREATE OR REPLACE TRIGGER generate_student_id
+BEFORE INSERT ON Students
+FOR EACH ROW
+BEGIN
+    IF :NEW.Id IS NULL THEN -- Проверяем, было ли указано значение Id во вставке
+        :NEW.Id := Students_seq.NEXTVAL; -- Генерируем новое значение Id только если оно не указано явно
+    END IF;
+END;
+/
+
+
+INSERT INTO Students (Name, Group_id) VALUES ('dvdv', 1);
+
+
+-- Триггер для проверки уникальности полей ID в таблице Groups
+CREATE OR REPLACE TRIGGER check_gruop_id_unique 
+BEFORE INSERT ON Groups
+FOR EACH ROW
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM Groups
+    WHERE Id = :NEW.Id;
+
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Ошибка: Поле ID должно быть уникальным в таблице Groups.');
+    END IF;
+END;
+
+
+INSERT INTO Groups (id, Name, C_val) VALUES (4, 'Group D', 10);
+
+
+-- Триггер для генерации автоинкрементного ключа для поля ID в таблице Groups
+CREATE SEQUENCE Groups_seq START WITH 1 INCREMENT BY 1;
+CREATE OR REPLACE TRIGGER generate_Group_id
+BEFORE INSERT ON Groups
+FOR EACH ROW
+BEGIN
+    IF :NEW.Id IS NULL THEN -- Проверяем, было ли указано значение Id во вставке
+        :NEW.Id := Groups_seq.NEXTVAL; -- Генерируем новое значение Id только если оно не указано явно
+    END IF;
+END;
+/
+
+INSERT INTO Groups (Name, C_val) VALUES ('Group gre', 5);
+
+create or replace NONEDITIONABLE TRIGGER check_group_name_unique
+BEFORE INSERT ON Groups
+FOR EACH ROW
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM Groups
+    WHERE Name = :NEW.Name;
+
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Ошибка: Поле Name должно быть уникальным в таблице Groups.');
+    END IF;
+END;
+
+INSERT INTO Groups (Name, C_val) VALUES ('Group gre', 5);
+
+
+***********************************************************************************************************************
+3:
+--триггер, обеспечивающий внешний ключ с каскадным удалением между таблицами STUDENTS и GROUPS
+CREATE OR REPLACE TRIGGER CASCADE_DELETE_STUDENTS
+BEFORE DELETE ON GROUPS
+FOR EACH ROW
+BEGIN
+    DELETE FROM STUDENTS
+    WHERE Group_id = :OLD.Id;
+END;
+/
+
+
+select * from groups;
+select * from students;
+DELETE FROM GROUPS WHERE Id = 3;
+select * from groups;
+select * from students;
+
+***********************************************************************************************************************
+4:
+
+UPDATE STUDENTS SET Name = 'Jane Doe' WHERE Id = 1;
+INSERT INTO STUDENTS (Name, Group_id) VALUES ('John Doe', 1);
+SELECT * FROM STUDENTS_LOG;
