@@ -293,6 +293,136 @@ select * from students;
 ***********************************************************************************************************************
 4:
 
-UPDATE STUDENTS SET Name = 'Jane Doe' WHERE Id = 1;
+CREATE TABLE STUDENTS_LOG (
+    log_id NUMBER GENERATED ALWAYS AS IDENTITY,
+    action VARCHAR2(10),
+    student_id NUMBER,
+    old_name VARCHAR2(100),
+    new_name VARCHAR2(100),
+    old_group_id NUMBER,
+    new_group_id NUMBER,
+    action_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE OR REPLACE TRIGGER students_log_trigger
+AFTER INSERT OR UPDATE OR DELETE ON STUDENTS
+FOR EACH ROW
+DECLARE
+    v_action VARCHAR2(10);
+BEGIN
+    IF INSERTING THEN
+        v_action := 'INSERT';
+    ELSIF UPDATING THEN
+        v_action := 'UPDATE';
+    ELSIF DELETING THEN
+        v_action := 'DELETE';
+    END IF;
+
+    IF INSERTING OR UPDATING THEN
+        INSERT INTO STUDENTS_LOG (action, student_id, old_name, new_name, old_group_id, new_group_id)
+        VALUES (v_action, :NEW.Id, :OLD.Name, :NEW.Name, :OLD.Group_id, :NEW.Group_id);
+    ELSE
+        INSERT INTO STUDENTS_LOG (action, student_id, old_name, old_group_id)
+        VALUES (v_action, :OLD.Id, :OLD.Name, :OLD.Group_id);
+    END IF;
+END;
+/
+
 INSERT INTO STUDENTS (Name, Group_id) VALUES ('John Doe', 1);
+UPDATE STUDENTS SET Name = 'Jane Doe' WHERE Id = 41;
+DELETE FROM STUDENTS WHERE Id = 41;
 SELECT * FROM STUDENTS_LOG;
+
+***********************************************************************************************************************
+
+5:
+
+CREATE OR REPLACE PROCEDURE restore_students_data (
+    p_timestamp TIMESTAMP,
+    p_offset INTERVAL DAY TO SECOND
+) AS
+BEGIN
+    FOR log_rec IN (
+        SELECT *
+        FROM STUDENTS_LOG
+        WHERE action_date <= p_timestamp
+          AND action_date >= p_timestamp - p_offset
+        ORDER BY action_date DESC
+    ) LOOP
+        IF log_rec.action = 'INSERT' THEN
+            INSERT INTO STUDENTS (Id, Name, Group_id)
+            VALUES (log_rec.student_id, log_rec.new_name, log_rec.new_group_id);
+        ELSIF log_rec.action = 'UPDATE' THEN
+            UPDATE STUDENTS
+            SET Name = log_rec.new_name,
+                Group_id = log_rec.new_group_id
+            WHERE Id = log_rec.student_id;
+        ELSIF log_rec.action = 'DELETE' THEN
+            DELETE FROM STUDENTS
+            WHERE Id = log_rec.student_id;
+        END IF;
+    END LOOP;
+    
+    COMMIT;
+END;
+/
+
+
+BEGIN
+    restore_students_data(TO_TIMESTAMP('2024-03-05 22:15:00', 'YYYY-MM-DD HH24:MI:SS'), INTERVAL '0' DAY);
+END;
+/
+
+select * from students;
+
+***********************************************************************************************************************
+
+6:
+
+
+CREATE OR REPLACE TRIGGER update_groups_cval
+BEFORE INSERT OR UPDATE OR DELETE ON STUDENTS
+FOR EACH ROW
+DECLARE
+    v_student_count NUMBER;
+BEGIN
+    IF DELETING THEN
+        -- Уменьшаем количество студентов в группе при удалении студента
+        SELECT COUNT(*)
+        INTO v_student_count
+        FROM STUDENTS
+        WHERE Group_id = :OLD.Group_id;
+
+        -- Обновляем значение C_VAL в таблице GROUPS
+        UPDATE GROUPS
+        SET c_val = v_student_count - 1
+        WHERE ID = :OLD.Group_id;
+    ELSIF INSERTING OR UPDATING THEN
+        -- Увеличиваем количество студентов в группе при вставке или обновлении студента
+        SELECT COUNT(*)
+        INTO v_student_count
+        FROM STUDENTS
+        WHERE Group_id = :NEW.Group_id;
+
+        -- Обновляем значение C_VAL в таблице GROUPS
+        UPDATE GROUPS
+        SET c_val = v_student_count + 1
+        WHERE ID = :NEW.Group_id;
+    END IF;
+END;
+/
+
+
+-- Вставка нового студента
+INSERT INTO STUDENTS (Name, Group_id) VALUES ('ddd', 1);
+
+select * from students;
+select * from groups;
+
+
+***********************************************************************************************************************
+***********************************************************************************************************************
+***********************************************************************************************************************
+
+LAB_03:
