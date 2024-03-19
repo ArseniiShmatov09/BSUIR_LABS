@@ -117,9 +117,10 @@ TOKEN_TYPES = {
     'constant "hexadecimal"': Token_type('hexadecimal constant', r'#x[0-9A-Fa-f]+'),
     'constant "char"': Token_type('char constant', r'#\\[a-zA-Z]'),  
     'constant "quote_tilda"': Token_type('quote constant', r'\`(?:\\.|[^"\\])*'),  
-    'constant "quote"': Token_type('quote constant', r'\'(?:\\.|[^"\\])*'),  
+    #'constant "quote"': Token_type('quote constant', r'\'(?:\\.|[^"\\])*'),  
     'constant "true"': Token_type('true constant', r'#t'),
     'constant "false"': Token_type('false constant', r'#f'),
+    'constant symbols': Token_type("symbols constant", r"'\([^)]+\)|'[^ )]+"),
 
     #key words
     'import': Token_type('key word', r'import'),
@@ -239,8 +240,8 @@ TOKEN_TYPES = {
     #special symbols
     '#': Token_type('special symbol', r'#'),
     ',': Token_type('special symbol', r','),
-    "'": Token_type('special symbol', r"'"),
-    "`": Token_type('special symbol', r"`"),
+   # "'": Token_type('special symbol', r"'"),
+   # "`": Token_type('special symbol', r"`"),
 
     'identifier': Token_type('identifier', r'[A-Za-z][A-Za-z0-9_-]*')
 

@@ -16,9 +16,9 @@ def main():
     if not brackets_balanced:
         display_error(code, error_position)
    
-    if(get_token_table(code)[0] == 0):
-        print(get_token_table(code)[2])
-        print(get_token_table(code)[1])
+    result = get_token_table(code) 
+    print(result[0])
+    print(result[1])
 
 if __name__ == "__main__":
     main()

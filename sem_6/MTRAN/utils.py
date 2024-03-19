@@ -90,7 +90,6 @@ def get_token_table(code):
     regex = re.compile(combined_pattern)
     table_data = []
     tokens = []
-    lexems = []
     for match in regex.finditer(code):
         token = match.group(1)
         position = match.start()
@@ -99,7 +98,6 @@ def get_token_table(code):
             token_type = get_token_type(token, TOKEN_TYPES) 
             t = Token(token, token_type, position)
             tokens.append(t)
-            lexems.append(t.name)
             table_data.append([t.name, t.type.name if t.type else "Unknown", line, column])
             if token not in KEY_WORDS:
                     similar_words = [word for word in find_similar_word(token, KEY_WORDS.keys()) if word != token]
@@ -119,4 +117,7 @@ def get_token_table(code):
     headers = ["Token", "Type", "Line", "Column"]
     
 
-    return errors, (tabulate(table_data, headers=headers)), lexems
+    return tokens, (tabulate(table_data, headers=headers))
+
+
+    

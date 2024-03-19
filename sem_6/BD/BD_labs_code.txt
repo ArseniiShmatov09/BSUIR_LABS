@@ -214,8 +214,8 @@ END;
 /
 
 
-INSERT INTO Students (Name, Group_id) VALUES ('dvdv', 1);
-
+INSERT INTO Students (Name, Group_id) VALUES ('Pavel', 1);
+select * from students
 
 -- Триггер для проверки уникальности полей ID в таблице Groups
 CREATE OR REPLACE TRIGGER check_gruop_id_unique 
@@ -250,7 +250,7 @@ BEGIN
 END;
 /
 
-INSERT INTO Groups (Name, C_val) VALUES ('Group gre', 5);
+INSERT INTO Groups (Name, C_val) VALUES ('Group great', 5);
 
 create or replace NONEDITIONABLE TRIGGER check_group_name_unique
 BEFORE INSERT ON Groups
@@ -286,7 +286,7 @@ END;
 
 select * from groups;
 select * from students;
-DELETE FROM GROUPS WHERE Id = 3;
+DELETE FROM GROUPS WHERE Id = 2;
 select * from groups;
 select * from students;
 
@@ -330,8 +330,8 @@ END;
 /
 
 INSERT INTO STUDENTS (Name, Group_id) VALUES ('John Doe', 1);
-UPDATE STUDENTS SET Name = 'Jane Doe' WHERE Id = 41;
-DELETE FROM STUDENTS WHERE Id = 41;
+UPDATE STUDENTS SET Name = 'Jane Doe' WHERE Id = 64;
+DELETE FROM STUDENTS WHERE Id = 64;
 SELECT * FROM STUDENTS_LOG;
 
 ***********************************************************************************************************************
@@ -370,7 +370,7 @@ END;
 
 
 BEGIN
-    restore_students_data(TO_TIMESTAMP('2024-03-05 22:15:00', 'YYYY-MM-DD HH24:MI:SS'), INTERVAL '0' DAY);
+    restore_students_data(TO_TIMESTAMP('2024-03-17 16:59:18', 'YYYY-MM-DD HH24:MI:SS'), INTERVAL '1' DAY);
 END;
 /
 
@@ -414,7 +414,6 @@ END;
 /
 
 
--- Вставка нового студента
 INSERT INTO STUDENTS (Name, Group_id) VALUES ('ddd', 1);
 
 select * from students;
@@ -426,3 +425,606 @@ select * from groups;
 ***********************************************************************************************************************
 
 LAB_03:
+
+--одинаковые таблицы
+CREATE TABLE Dev.Table1 (
+    id NUMBER PRIMARY KEY,
+);
+
+CREATE TABLE Prod.Table1 (
+    id NUMBER PRIMARY KEY,
+);
+
+CREATE TABLE Dev.Table2 (
+    id NUMBER PRIMARY KEY,
+    value VARCHAR2(100)
+);
+
+
+--есть в dev но нет в prod
+CREATE TABLE dev.Table4 (
+    id NUMBER PRIMARY KEY,
+    count number
+);
+
+
+--отличаются кол-вом столбцов
+CREATE TABLE DEV.EMPLOYEES (
+    EMPLOYEE_ID NUMBER PRIMARY KEY,
+    FIRST_NAME VARCHAR2(50),
+    LAST_NAME VARCHAR2(50),
+    EMAIL VARCHAR2(100),
+    HIRE_DATE DATE,
+    SALARY NUMBER
+);
+
+CREATE TABLE PROD.EMPLOYEES (
+    EMPLOYEE_ID NUMBER PRIMARY KEY,
+    FULL_NAME VARCHAR2(100),
+    EMAIL_ADDRESS VARCHAR2(100),
+    HIRE_DATE DATE,
+    SALARY NUMBER
+);
+
+--отличаются названием стоблца
+
+CREATE TABLE DEV.PERSON (
+    ID NUMBER PRIMARY KEY,
+    FIRST_NAME VARCHAR2(50),
+    SALARY NUMBER
+);
+
+CREATE TABLE PROD.PERSON (
+    ID NUMBER PRIMARY KEY,
+    FULL_NAME VARCHAR2(100),
+    SALARY NUMBER
+);
+
+--отличаются типом стоблца
+
+CREATE TABLE DEV.EMPLOYEES1 (
+    ID NUMBER PRIMARY KEY,
+    FULL_NAME VARCHAR(100),
+    SALARY NUMBER
+);
+
+CREATE TABLE PROD.EMPLOYEES1 (
+    ID NUMBER PRIMARY KEY,
+    FULL_NAME VARCHAR2(100),
+    SALARY DATE
+);
+
+
+
+--циклические зависимости(и в прод и в дэв)
+CREATE TABLE Table_A (
+    id NUMBER PRIMARY KEY,
+    name VARCHAR2(100)
+);
+
+CREATE TABLE Table_B (
+    id NUMBER PRIMARY KEY,
+    name VARCHAR2(100),
+    table_a_id NUMBER,
+    CONSTRAINT fk_table_a_id FOREIGN KEY (table_a_id) REFERENCES Table_A(id)
+);
+
+CREATE TABLE Table_C (
+    id NUMBER PRIMARY KEY,
+    name VARCHAR2(100),
+    table_b_id NUMBER,
+    CONSTRAINT fk_table_b_id FOREIGN KEY (table_b_id) REFERENCES Table_B(id)
+);
+
+ALTER TABLE Table_A
+ADD CONSTRAINT fk_table_c_id FOREIGN KEY (id) REFERENCES Table_C(id);
+
+
+
+--скирпт сравнения таблиц
+
+CREATE OR REPLACE NONEDITIONABLE PROCEDURE compare_schemas (
+    dev_user_name IN VARCHAR2,
+    prod_user_name IN VARCHAR2
+) AS
+    v_dev_table_name VARCHAR2(100);
+    v_prod_table_name VARCHAR2(100);
+    v_dev_columns VARCHAR2(4000);
+    v_prod_columns VARCHAR2(4000);
+BEGIN
+    FOR dev_table_rec IN (SELECT table_name FROM all_tables WHERE owner = dev_user_name) LOOP
+        v_dev_table_name := dev_table_rec.table_name;
+        
+        -- Получаем список имен столбцов и их типов данных в таблице DEV_USER
+        SELECT LISTAGG(column_name || ' ' || data_type || CASE WHEN data_length IS NOT NULL THEN '(' || data_length || ')' ELSE '' END, ', ') WITHIN GROUP (ORDER BY column_id)
+        INTO v_dev_columns
+        FROM all_tab_columns
+        WHERE owner = dev_user_name
+        AND table_name = v_dev_table_name;
+        
+        -- Проверяем, существует ли таблица в схеме PROD_USER
+        BEGIN
+            SELECT table_name
+            INTO v_prod_table_name
+            FROM all_tables
+            WHERE owner = prod_user_name
+            AND table_name = v_dev_table_name;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                -- Если таблицы нет в схеме продакшена, выводим код ее создания
+                DBMS_OUTPUT.PUT_LINE('Table ' || v_dev_table_name || ' is missing in ' || prod_user_name || ' schema. Creating...');
+                DBMS_OUTPUT.PUT_LINE('CREATE TABLE ' || prod_user_name || '.' || v_dev_table_name || ' (' || v_dev_columns || ');');
+                CONTINUE;
+        END;
+        
+        -- Получаем список имен столбцов и их типов данных в соответствующей таблице PROD_USER
+        SELECT LISTAGG(column_name || ' ' || data_type || CASE WHEN data_length IS NOT NULL THEN '(' || data_length || ')' ELSE '' END, ', ') WITHIN GROUP (ORDER BY column_id)
+        INTO v_prod_columns
+        FROM all_tab_columns
+        WHERE owner = prod_user_name
+        AND table_name = v_dev_table_name;
+        
+        -- Сравниваем списки имен столбцов и их типов данных
+        IF v_dev_columns <> v_prod_columns THEN
+            -- Выводим код для изменения структуры таблицы в PROD_USER
+            DBMS_OUTPUT.PUT_LINE('Table ' || v_dev_table_name || ' structure differs in ' || prod_user_name || ' schema. Modifying...');
+            DBMS_OUTPUT.PUT_LINE('ALTER TABLE ' || prod_user_name || '.' || v_dev_table_name || ' (' || v_dev_columns || ');');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Table ' || v_dev_table_name || ' has the same structure in both schemas.');
+        END IF;
+    END LOOP;
+END;
+
+
+-- одинаковые процедуры
+
+CREATE OR REPLACE PROCEDURE hello_world AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello world from schema!');
+END hello_world;
+
+
+-- только в дэв
+CREATE OR REPLACE PROCEDURE procedure1 AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello world from schema!');
+END hello_world;
+
+
+
+--ращличные структуры
+CREATE OR REPLACE PROCEDURE calculate_salary AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Salary calculated in prod schema');
+        DBMS_OUTPUT.PUT_LINE('Salary calculated in prod schema');
+
+END calculate_salary;
+
+CREATE OR REPLACE PROCEDURE calculate_salary AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Salary calculated in prod dev');
+
+END calculate_salary;
+
+
+--процедуры с различными параметрами
+
+CREATE OR REPLACE PROCEDURE procedure2 (
+    p1 IN VARCHAR2,
+    p2 IN VARCHAR2
+) AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Parameter 1: ' || p1);
+    DBMS_OUTPUT.PUT_LINE('Parameter 2: ' || p2);
+END procedure2;
+
+
+CREATE OR REPLACE PROCEDURE procedure2 (
+    param1 IN VARCHAR2,
+    param2 IN VARCHAR2
+) AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Parameter 1: ' || param1);
+    DBMS_OUTPUT.PUT_LINE('Parameter 2: ' || param2);
+END procedure2;
+
+
+--скрипт сравнеия процедур
+
+create or replace NONEDITIONABLE PROCEDURE compare_procedures (
+    dev_user_name IN VARCHAR2,
+    prod_user_name IN VARCHAR2
+) AS
+    v_dev_procedure_name VARCHAR2(100);
+    v_dev_procedure_body CLOB;
+    v_prod_procedure_body CLOB;
+BEGIN
+    FOR dev_procedure_rec IN (
+        SELECT object_name
+        FROM all_objects
+        WHERE owner = dev_user_name
+        AND object_type = 'PROCEDURE'
+    ) LOOP
+        v_dev_procedure_name := dev_procedure_rec.object_name;
+        
+        -- Получаем тело процедуры из схемы DEV_USER
+        SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+        INTO v_dev_procedure_body
+        FROM ALL_SOURCE
+        WHERE OWNER = dev_user_name
+        AND NAME = v_dev_procedure_name
+        AND TYPE = 'PROCEDURE';
+        
+        -- Получаем тело процедуры из схемы PROD_USER
+        BEGIN
+            SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+            INTO v_prod_procedure_body
+            FROM ALL_SOURCE
+            WHERE OWNER = prod_user_name
+            AND NAME = v_dev_procedure_name
+            AND TYPE = 'PROCEDURE';
+            
+            -- Сравниваем тела процедур
+   
+            IF v_prod_procedure_body IS NOT NULL THEN
+                IF v_dev_procedure_body = v_prod_procedure_body THEN
+                    DBMS_OUTPUT.PUT_LINE('Procedure ' || v_dev_procedure_name || ' is in both schemas.');
+                ELSE
+                    DBMS_OUTPUT.PUT_LINE('Procedure ' || v_dev_procedure_name || ' differs from ' || prod_user_name || ' schema.');
+                    DBMS_OUTPUT.PUT_LINE('ALTER ' || v_dev_procedure_body);
+
+                    -- Дополнительная логика для вывода различий, если это необходимо
+                END IF;
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('Procedure ' || v_dev_procedure_name || ' is missing in ' || prod_user_name || ' schema.');
+                DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_procedure_body);
+           
+           
+            END IF;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                DBMS_OUTPUT.PUT_LINE('Procedure ' || v_dev_procedure_name || ' is missing in ' || prod_user_name || ' schema.');
+                DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_procedure_body);
+                DBMS_OUTPUT.PUT_LINE('DROP PROCEDURE ' || v_dev_procedure_name || ';');
+
+        END;
+    END LOOP;
+END;
+
+--одинаковые функции
+
+CREATE OR REPLACE FUNCTION calculate_sum_dev (x NUMBER, y NUMBER) RETURN NUMBER AS
+BEGIN
+    RETURN x + y;
+END calculate_sum_dev;
+
+--нет в прод но есть в дэв
+
+CREATE OR REPLACE FUNCTION calculate_trio (x NUMBER, y NUMBER, z NUMBER) RETURN NUMBER AS
+BEGIN
+    RETURN (x * y * z);
+END calculate_trio;
+
+--различная структура
+
+--дэв
+CREATE OR REPLACE FUNCTION calculate_avg(x NUMBER, y NUMBER) RETURN NUMBER AS
+BEGIN
+    RETURN (x + y) / 2;
+END calculate_avg_dev;
+
+CREATE OR REPLACE FUNCTION calculate_smth (x NUMBER) RETURN NUMBER AS
+BEGIN
+    RETURN (x);
+END calculate_smth;
+
+--прод
+CREATE OR REPLACE FUNCTION calculate_avg_dev (x NUMBER, y NUMBER) RETURN NUMBER AS
+BEGIN
+    RETURN (x + y) / 3;
+END calculate_avg_dev;
+
+
+CREATE OR REPLACE FUNCTION calculate_smth (y NUMBER) RETURN NUMBER AS
+BEGIN
+    RETURN (y);
+END calculate_smth;
+
+--скрипт сравнения функций
+create or replace NONEDITIONABLE PROCEDURE compare_functions (
+    dev_user_name IN VARCHAR2,
+    prod_user_name IN VARCHAR2
+) AS
+    v_dev_function_name VARCHAR2(100);
+    v_dev_function_body CLOB;
+    v_prod_function_body CLOB;
+BEGIN
+    FOR dev_function_rec IN (
+        SELECT object_name
+        FROM all_objects
+        WHERE owner = dev_user_name
+        AND object_type = 'FUNCTION'
+    ) LOOP
+        v_dev_function_name := dev_function_rec.object_name;
+
+        -- Получаем тело функции из схемы DEV_USER
+        SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+        INTO v_dev_function_body
+        FROM ALL_SOURCE
+        WHERE OWNER = dev_user_name
+        AND NAME = v_dev_function_name
+        AND TYPE = 'FUNCTION';
+
+        -- Получаем тело функции из схемы PROD_USER
+        BEGIN
+            SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+            INTO v_prod_function_body
+            FROM ALL_SOURCE
+            WHERE OWNER = prod_user_name
+            AND NAME = v_dev_function_name
+            AND TYPE = 'FUNCTION';
+
+            -- Сравниваем тела функций
+            IF v_prod_function_body IS NOT NULL THEN
+                IF v_dev_function_body = v_prod_function_body THEN
+                    DBMS_OUTPUT.PUT_LINE('Function ' || v_dev_function_name || ' is in both schemas.');
+                ELSE
+                    DBMS_OUTPUT.PUT_LINE('Function ' || v_dev_function_name || ' differs from ' || prod_user_name || ' schema.');
+                    DBMS_OUTPUT.PUT_LINE('ALTER ' || v_dev_function_body);
+                    -- Дополнительная логика для вывода различий, если это необходимо
+                END IF;
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_function_body);
+                DBMS_OUTPUT.PUT_LINE('Function ' || v_dev_function_name || ' is missing in ' || prod_user_name || ' schema.');
+            END IF;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_function_body);
+                DBMS_OUTPUT.PUT_LINE('Function ' || v_dev_function_name || ' is missing in ' || prod_user_name || ' schema.');
+                DBMS_OUTPUT.PUT_LINE('DROP FUNCTION ' || v_dev_function_name || ';');
+
+        END;
+    END LOOP;
+END;
+
+--одинаковые индексы
+
+CREATE INDEX idx_user ON table2 (value);
+
+--отличаются таблицы
+
+--дэв
+CREATE INDEX idx_b ON b (value);
+
+--прод
+CREATE INDEX idx_b ON с (value);
+
+--отличаются столбцы
+
+--дэв
+CREATE INDEX idx_employees ON employees (email, salary);
+
+--прод
+
+CREATE INDEX idx_employees ON employees (salary);
+
+
+--скрипт сравнения индексов
+
+CREATE OR REPLACE NONEDITIONABLE PROCEDURE compare_indexes (
+    dev_user_name IN VARCHAR2,
+    prod_user_name IN VARCHAR2
+) AS
+    v_dev_index_name VARCHAR2(100);
+    v_dev_index_table VARCHAR2(100);
+    v_dev_index_columns VARCHAR2(4000);
+    v_prod_index_count NUMBER;
+    v_diff_count NUMBER;
+BEGIN
+    -- Проверяем индексы из схемы DEV_USER
+    FOR dev_index_rec IN (
+        SELECT i.index_name, i.table_name
+        FROM all_indexes i
+        WHERE i.owner = dev_user_name
+    ) LOOP
+        -- Получаем имя индекса и имя таблицы из курсора
+        v_dev_index_name := dev_index_rec.index_name;
+        v_dev_index_table := dev_index_rec.table_name;
+
+        -- Получаем список столбцов для данного индекса из схемы DEV_USER
+        SELECT LISTAGG(ic.column_name, ',') WITHIN GROUP (ORDER BY ic.column_position)
+        INTO v_dev_index_columns
+        FROM all_ind_columns ic
+        WHERE ic.index_owner = dev_user_name
+        AND ic.index_name = v_dev_index_name
+        AND ic.table_name = v_dev_index_table;
+
+        -- Проверяем, существует ли индекс в схеме PROD_USER
+        BEGIN
+            SELECT COUNT(*)
+            INTO v_prod_index_count
+            FROM all_indexes
+            WHERE owner = prod_user_name
+            AND index_name = v_dev_index_name
+            AND table_name = v_dev_index_table;
+
+            IF v_prod_index_count = 0 THEN
+                -- Если индекса нет в прод, добавляем его
+                DBMS_OUTPUT.PUT_LINE('Index ' || v_dev_index_name || ' for table ' || v_dev_index_table || ' is missing in ' || prod_user_name || ' schema.');
+                DBMS_OUTPUT.PUT_LINE('CREATE INDEX ' || prod_user_name || '.' || v_dev_index_name || ' ON ' || prod_user_name || '.' || v_dev_index_table || ' (' || v_dev_index_columns || ');');
+            ELSE
+                -- Если индекс существует, получаем список столбцов из схемы PROD_USER
+                SELECT COUNT(*)
+                INTO v_diff_count
+                FROM all_ind_columns
+                WHERE index_owner = prod_user_name
+                AND index_name = v_dev_index_name
+                AND table_name = v_dev_index_table
+                AND (SELECT LISTAGG(column_name, ',') WITHIN GROUP (ORDER BY column_position)
+                     FROM all_ind_columns
+                     WHERE index_owner = prod_user_name
+                     AND index_name = v_dev_index_name
+                     AND table_name = v_dev_index_table) = v_dev_index_columns;
+
+                IF v_diff_count = 0 THEN
+                    -- Если индекс существует и совпадает с версией в DEV, ничего не делаем
+                    DBMS_OUTPUT.PUT_LINE('Index ' || v_dev_index_name || ' for table ' || v_dev_index_table || ' is in both schemas.');
+                ELSE
+                    -- Если индекс существует, но отличается от версии в DEV, изменяем его
+                    DBMS_OUTPUT.PUT_LINE('Index ' || v_dev_index_name || ' for table ' || v_dev_index_table || ' differs from ' || prod_user_name || ' schema.');
+                    DBMS_OUTPUT.PUT_LINE('ALTER INDEX ' || prod_user_name || '.' || v_dev_index_name || ' REBUILD;');
+                END IF;
+            END IF;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                -- Если индекса нет в прод, добавляем его
+                DBMS_OUTPUT.PUT_LINE('Index ' || v_dev_index_name || ' for table ' || v_dev_index_table || ' is missing in ' || prod_user_name || ' schema.');
+                DBMS_OUTPUT.PUT_LINE('CREATE INDEX ' || prod_user_name || '.' || v_dev_index_name || ' ON ' || prod_user_name || '.' || v_dev_index_table || ' (' || v_dev_index_columns || ');');
+        END;
+    END LOOP;
+END;
+
+
+--одинаковые пакеты
+
+CREATE OR REPLACE PACKAGE dev_package AS
+    PROCEDURE procedure1;
+END dev_package;
+/
+
+CREATE OR REPLACE PACKAGE BODY dev_package AS
+    PROCEDURE procedure1 IS
+    BEGIN
+        NULL;
+    END procedure1;
+END dev_package;
+/
+
+--пакеты с различной структурой(телом)
+
+--дэв
+CREATE OR REPLACE PACKAGE package2 AS
+    PROCEDURE procedure1;
+END package2;
+/
+
+CREATE OR REPLACE PACKAGE BODY package2 AS
+    PROCEDURE procedure1 IS
+    BEGIN
+        NULL;
+    END procedure1;
+
+    PROCEDURE procedure2 IS
+    BEGIN
+        NULL;
+    END procedure2;
+END package2;
+
+--прод
+
+CREATE OR REPLACE PACKAGE package2 AS
+    PROCEDURE procedure1;
+END package2;
+/
+
+CREATE OR REPLACE PACKAGE BODY package2 AS
+    PROCEDURE procedure1 IS
+    BEGIN
+        NULL;
+    END procedure1;
+END package2;
+/
+
+
+--скрипт сравнения пакетов
+
+CREATE OR REPLACE PROCEDURE compare_packages (
+    dev_user_name IN VARCHAR2,
+    prod_user_name IN VARCHAR2
+) AS
+    v_dev_package_name VARCHAR2(100);
+    v_dev_package_spec CLOB;
+    v_dev_package_body CLOB;
+    v_prod_package_spec CLOB;
+    v_prod_package_body CLOB;
+BEGIN
+    FOR dev_package_rec IN (
+        SELECT object_name
+        FROM all_objects
+        WHERE owner = dev_user_name
+        AND object_type = 'PACKAGE'
+    ) LOOP
+        v_dev_package_name := dev_package_rec.object_name;
+
+        -- Получаем спецификацию пакета из схемы DEV_USER
+        SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+        INTO v_dev_package_spec
+        FROM ALL_SOURCE
+        WHERE OWNER = dev_user_name
+        AND NAME = v_dev_package_name
+        AND TYPE = 'PACKAGE'
+        AND LINE <= (SELECT MIN(LINE) FROM ALL_SOURCE WHERE OWNER = dev_user_name AND NAME = v_dev_package_name AND TYPE = 'PACKAGE BODY');
+
+        -- Получаем тело пакета из схемы DEV_USER
+        SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+        INTO v_dev_package_body
+        FROM ALL_SOURCE
+        WHERE OWNER = dev_user_name
+        AND NAME = v_dev_package_name
+        AND TYPE = 'PACKAGE BODY';
+
+        -- Получаем спецификацию пакета из схемы PROD_USER
+        BEGIN
+            SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+            INTO v_prod_package_spec
+            FROM ALL_SOURCE
+            WHERE OWNER = prod_user_name
+            AND NAME = v_dev_package_name
+            AND TYPE = 'PACKAGE'
+            AND LINE <= (SELECT MIN(LINE) FROM ALL_SOURCE WHERE OWNER = prod_user_name AND NAME = v_dev_package_name AND TYPE = 'PACKAGE BODY');
+
+            -- Получаем тело пакета из схемы PROD_USER
+            SELECT LISTAGG(TEXT, CHR(10)) WITHIN GROUP (ORDER BY LINE) 
+            INTO v_prod_package_body
+            FROM ALL_SOURCE
+            WHERE OWNER = prod_user_name
+            AND NAME = v_dev_package_name
+            AND TYPE = 'PACKAGE BODY';
+
+            -- Сравниваем спецификации и тела пакетов
+            IF v_prod_package_spec IS NOT NULL AND v_prod_package_body IS NOT NULL THEN
+                IF v_dev_package_spec = v_prod_package_spec AND v_dev_package_body = v_prod_package_body THEN
+                    DBMS_OUTPUT.PUT_LINE('Package ' || v_dev_package_name || ' is in both schemas.');
+                ELSE
+                    DBMS_OUTPUT.PUT_LINE('Package ' || v_dev_package_name || ' differs from ' || prod_user_name || ' schema.');
+
+                    -- Код для изменения пакета в PROD в соответствии с DEV
+                    DBMS_OUTPUT.PUT_LINE('/* SQL code to modify the package in ' || prod_user_name || ' schema based on ' || dev_user_name || ' schema */');
+                    DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_package_spec);
+                    DBMS_OUTPUT.PUT_LINE('/');
+                    DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_package_body);
+                    DBMS_OUTPUT.PUT_LINE('/');
+
+                END IF;
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('Package ' || v_dev_package_name || ' is missing in ' || prod_user_name || ' schema.');
+
+                -- Код для добавления пакета в PROD из DEV
+                DBMS_OUTPUT.PUT_LINE('/* SQL code to add the package to ' || prod_user_name || ' schema from ' || dev_user_name || ' schema */');
+                DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_package_spec);
+                DBMS_OUTPUT.PUT_LINE('/');
+                DBMS_OUTPUT.PUT_LINE('CREATE OR REPLACE ' || v_dev_package_body);
+                DBMS_OUTPUT.PUT_LINE('/');
+
+            END IF;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                DBMS_OUTPUT.PUT_LINE('Package ' || v_dev_package_name || ' is missing in ' || prod_user_name || ' schema.');
+
+                -- Код для удаления пакета из PROD, если он есть в PROD, но отсутствует в DEV
+                DBMS_OUTPUT.PUT_LINE('DROP PACKAGE ' || v_dev_package_name || ';');
+                DBMS_OUTPUT.PUT_LINE('/');
+     END;
+    END LOOP;
+END;
+

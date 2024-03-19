@@ -1,10 +1,1 @@
-(define (sum a b)
-  (+ a b))
-
-(display "Enterfirst")
-(define num1 (read))
-(display "entersecond")
-(define num2 (read))
-
-(display "Summ")
-(display (sum num1 num2))
+(i)
