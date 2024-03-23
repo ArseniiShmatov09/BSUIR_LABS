@@ -382,22 +382,18 @@ select * from students;
 
 
 CREATE OR REPLACE TRIGGER update_groups_cval
-BEFORE INSERT OR UPDATE OR DELETE ON STUDENTS
+AFTER INSERT OR UPDATE OR DELETE ON STUDENTS
 FOR EACH ROW
 DECLARE
     v_student_count NUMBER;
 BEGIN
     IF DELETING THEN
         -- Уменьшаем количество студентов в группе при удалении студента
-        SELECT COUNT(*)
-        INTO v_student_count
-        FROM STUDENTS
-        WHERE Group_id = :OLD.Group_id;
-
-        -- Обновляем значение C_VAL в таблице GROUPS
-        UPDATE GROUPS
-        SET c_val = v_student_count - 1
-        WHERE ID = :OLD.Group_id;
+UPDATE groups
+    SET
+      c_val = c_val - 1
+    WHERE
+      id = :old.gr_id;
     ELSIF INSERTING OR UPDATING THEN
         -- Увеличиваем количество студентов в группе при вставке или обновлении студента
         SELECT COUNT(*)
@@ -1027,4 +1023,513 @@ BEGIN
      END;
     END LOOP;
 END;
+
+***********************************************************************************************************************
+***********************************************************************************************************************
+***********************************************************************************************************************
+
+LAB_04:
+
+
+----------------------------------------------------------------------------------
+DECLARE
+    v_json_data CLOB := '
+{
+    "type": "SELECT",
+    "columns": ["employee.name, salary"],
+    "tables": ["employee"],
+    "filter_type": "no subquery",
+    "filter_conditions": "employee.salary > 50000",
+    "join_conditions": {
+            "type": "inner",
+            "table": "department",
+            "condition": "employee.department_id = department.department_id"
+            },  	
+
+}
+
+
+
+    ';
+BEGIN
+    execute_dynamic_query(v_json_data);
+END;
+
+
+SELECT employee.name, salary 
+FROM employee 
+INNER JOIN department 
+ON employee.department_id = department.department_id 
+AND employee.salary > 50000
+
+
+----------------------------------------------------------------------------------
+--ПРИМЕР с IN
+{
+    "type": "SELECT",
+    "columns": ["employee.name, salary"],
+    "tables": ["employee"],
+    "filter_type": "subquery",
+    "condition_type": "in",
+    "in_expression" : "employee.name",
+    "filter_conditions": {
+        "subquery_columns": "employee.name",
+        "subquery_tables": ["employee"],
+        "subquery_join_conditions": {
+            "type": "inner",
+            "table": "department",
+            "condition": " employee.department_id = department.department_id"
+        },  	
+        "subquery_filter_conditions" : "employee.salary > 50000"
+    }
+}
+
+SELECT employee.name, salary
+FROM employee
+WHERE employee.name in
+        (SELECT employee.name FROM employee
+        INNER JOIN department 
+        ON employee.department_id = department.department_id 
+        AND employee.salary > 50000)
+
+
+--ПРИМЕР с exists
+
+{
+    "type": "SELECT",
+    "columns": "*",
+    "tables": ["customers"],
+    "filter_type": "subquery",
+    "condition_type": "exists",
+    "filter_conditions": {
+        "subquery_columns": "*",
+        "subquery_tables": ["orders"],
+        "subquery_filter_conditions" : "customers.customer_id = orders.customer_id"
+    }
+}
+
+
+----------------------------------------------------------------------------------
+{
+    "type": "DELETE",
+    "tables": ["a"],
+    "filter_type": "no subquery",
+    "condition_type": "exists",
+    "in_expression": "",
+    "filter_conditions": "a.col1 = 6"
+
+}
+
+
+ DELETE FROM a
+ WHERE a.col1 = 6
+
+
+{
+    "type": "DELETE",
+    "tables": ["a"],
+    "filter_type": "subquery",
+    "condition_type": "exists",
+    "in_expression": "",
+    "filter_conditions": {
+        "subquery_columns": "",
+        "subquery_tables": ["a"],
+     
+        "subquery_filter_conditions" : "a.col1 = 1"
+    }
+
+
+ DELETE FROM a
+ WHERE EXISTS
+	 (SELECT *
+	 FROM a
+	 WHERE a.col1 = 1)
+
+
+{
+    "type": "INSERT",
+    "tables": ["project"],
+    "columns": ["project_id", "project_name", "project_description"],
+    "values": [101, "New Project", "Description of the new project"],
+    "filter_type": "no subquery",
+}
+
+INSERT INTO project (project_id, project_name, project_description)
+VALUES
+('101', 'New Project', 'Description of the new project')
+
+
+
+{
+    "type": "INSERT",
+    "tables": ["a"],
+    "columns": ["id", "col1", "col2"],
+    "values": [11, 11, 11],
+    "filter_type": "subquery",
+    "filter_conditions": {
+        "subquery_columns": "",
+        "subquery_tables": ["a"],
+     
+        "subquery_filter_conditions" : "a.col1 = 1"
+    }
+
+}
+
+INSERT INTO a (id, col1, col2)
+	 SELECT *
+	 FROM a
+	 WHERE a.col1 = 1
+
+
+{
+    "type": "UPDATE",
+    "tables": ["a"],
+    "update_columns": [
+        {"column_name": "col1", "expression": "111"},
+        {"column_name": "col2", "expression": "222"},
+    ],
+
+        "filter_type": "no subquery",
+
+    "filter_conditions": "a.col1 = 1"
+
+}
+
+UPDATE a
+ SET col1 = 111, 
+	col2 = 222 WHERE a.id = 1
+
+
+
+----------------------------------------------------------------------------------
+CREATE OR REPLACE NONEDITIONABLE PROCEDURE execute_dynamic_query (json_data IN CLOB) AS
+    v_type VARCHAR2(10);
+    v_query VARCHAR2(10000);
+    
+    v_columns VARCHAR2(4000);
+    v_values VARCHAR2(4000); -- Добавлено для значений при INSERT
+    v_tables VARCHAR2(4000);
+    v_join_conditions VARCHAR2(4000);
+    v_join_type VARCHAR2(10);
+    v_join_table VARCHAR2(100);
+    v_filter_conditions VARCHAR2(4000);
+
+    v_condition_type VARCHAR2(4000);
+    v_in_expression VARCHAR2(4000);
+    v_filter_type VARCHAR2(4000);
+ 
+    v_subquery_columns VARCHAR2(4000);
+    v_subquery_tables VARCHAR2(4000);
+    v_subquery_join_conditions VARCHAR2(4000);
+    v_subquery_join_table VARCHAR2(4000);
+    v_subquery_join_type VARCHAR2(4000);
+    v_subquery_filter_conditions VARCHAR2(4000);
+BEGIN
+    -- Парсинг JSON
+    v_type := JSON_VALUE(json_data, '$.type');
+    
+    SELECT LISTAGG(column_name, ', ') WITHIN GROUP (ORDER BY rn) INTO v_columns
+    FROM JSON_TABLE(json_data, '$.columns[*]' COLUMNS rn FOR ORDINALITY, column_name VARCHAR2(100) PATH '$');
+
+    
+    
+    -- Преобразуем JSON-массив в строку и удалим кавычки
+    SELECT LISTAGG(table_name, ', ') WITHIN GROUP (ORDER BY rn) INTO v_tables
+    FROM JSON_TABLE(json_data, '$.tables[*]' COLUMNS rn FOR ORDINALITY, table_name VARCHAR2(100) PATH '$');
+
+    v_join_type := JSON_VALUE(json_data, '$.join_conditions.type');
+    v_join_table := JSON_VALUE(json_data, '$.join_conditions.table');
+    v_join_conditions := JSON_VALUE(json_data, '$.join_conditions.condition');
+
+    v_condition_type := JSON_VALUE(json_data, '$.condition_type');
+    v_in_expression := JSON_VALUE(json_data, '$.in_expression');
+ 
+    v_filter_type := JSON_VALUE(json_data, '$.filter_type');
+
+    IF v_filter_type = 'no subquery' THEN
+        v_filter_conditions := JSON_VALUE(json_data, '$.filter_conditions');
+    ELSIF v_filter_type = 'subquery' THEN
+        v_subquery_columns := JSON_VALUE(json_data, '$.filter_conditions.subquery_columns');
+        
+        SELECT LISTAGG(table_name, ', ') WITHIN GROUP (ORDER BY rn) INTO v_subquery_tables
+        FROM JSON_TABLE(json_data, '$.filter_conditions.subquery_tables[*]' COLUMNS rn FOR ORDINALITY, table_name VARCHAR2(100) PATH '$');
+        
+        v_subquery_join_conditions:= JSON_VALUE(json_data, '$.filter_conditions.subquery_join_conditions.condition');
+        v_subquery_join_type := JSON_VALUE(json_data, '$.filter_conditions.subquery_join_conditions.type');
+        v_subquery_join_table := JSON_VALUE(json_data, '$.filter_conditions.subquery_join_conditions.table');
+        v_subquery_filter_conditions:= JSON_VALUE(json_data, '$.filter_conditions.subquery_filter_conditions');
+    ELSE 
+        RAISE_APPLICATION_ERROR(-20001, 'Incorrect filter_conditions type in JSON data.');
+    END IF;
+
+    -- Формирование SQL запроса
+    IF v_type = 'SELECT' THEN
+        v_query := 'SELECT ';
+    ELSIF v_type = 'INSERT'  THEN
+        v_query := 'INSERT INTO ' || v_tables || ' (' || v_columns || ')';
+        IF v_filter_type = 'no subquery' THEN
+        v_query := 'INSERT INTO ' || v_tables || ' (' || v_columns || ')' || CHR(10) || 'VALUES';
+        -- Добавляем значения для INSERT
+        
+    SELECT LISTAGG('''' || value_name || '''', ', ') WITHIN GROUP (ORDER BY rn) INTO v_values
+    FROM JSON_TABLE(json_data, '$.values[*]' COLUMNS rn FOR ORDINALITY, value_name VARCHAR2(100) PATH '$');
+
+
+    
+        v_values := '(' || v_values || ')';
+        v_query := v_query || CHR(10) || v_values || CHR(10);
+        END IF;
+    ELSIF v_type = 'UPDATE' THEN
+        v_query := 'UPDATE ';
+    ELSIF v_type = 'DELETE' THEN
+        v_query := 'DELETE ';
+    ELSE
+        RAISE_APPLICATION_ERROR(-20002, 'Invalid query type specified.');
+    END IF;
+
+    IF v_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE') THEN
+        IF v_type IN ('SELECT') THEN
+            IF v_columns IS NOT NULL THEN
+                v_query := v_query || v_columns || CHR(10);
+            ELSE
+                v_query := v_query || '*' || CHR(10);
+            END IF;
+        END IF;
+
+        IF v_tables IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20003, 'No tables specified in JSON data.');
+        ELSIF v_type NOT IN ('INSERT', 'UPDATE') THEN
+            v_query := v_query || ' FROM ' || v_tables || CHR(10);
+        END IF;
+
+        IF v_join_type IS NOT NULL THEN
+            IF v_join_type IN ('inner', 'outer', 'right', 'left', 'full') THEN
+                v_query := v_query || ' ' || upper(v_join_type) || ' JOIN ' || v_join_table || CHR(10) || ' ON ' || v_join_conditions || CHR(10);
+            ELSE
+                RAISE_APPLICATION_ERROR(-20004, 'Invalid join type specified.');
+            END IF;
+        END IF;
+
+        IF v_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE') THEN
+            -- Для запросов INSERT, UPDATE и DELETE добавляем условия фильтрации
+            IF v_filter_type = 'no subquery' THEN
+                IF v_filter_conditions IS NOT NULL THEN
+                    IF v_type IN ('SELECT', 'UPDATE', 'DELETE') THEN
+                    v_query := v_query || ' WHERE ' || v_filter_conditions || CHR(10);
+                    ELSE
+                    RAISE_APPLICATION_ERROR(-20005, 'Filter conditions required for UPDATE and DELETE queries.');
+                    END IF;
+                END IF;
+            ELSIF v_filter_type = 'subquery' THEN
+                
+                
+                IF v_type!='INSERT' THEN
+                    v_query := v_query || ' WHERE ';
+                    IF v_condition_type = 'in' THEN
+                        v_query := v_query || v_in_expression || ' IN' || CHR(10);
+                    ELSIF v_condition_type = 'not in' THEN
+                        v_query := v_query || v_in_expression || ' NOT IN' || CHR(10);
+                    ELSIF v_condition_type = 'exists' THEN
+                        v_query := v_query || 'EXISTS' || CHR(10);
+                    ELSIF v_condition_type = 'not exists' THEN
+                        v_query := v_query || 'NOT EXISTS' || CHR(10);
+                    ELSE
+                        RAISE_APPLICATION_ERROR(-20006, 'Invalid condition type1.');
+                    END IF;
+                    v_query := v_query || CHR(9) || ' (SELECT ';
+                ELSE v_query := v_query || CHR(10) || CHR(9) || ' SELECT ';
+                END IF;
+                
+                
+                IF v_subquery_columns IS NOT NULL THEN
+                    v_query := v_query || v_subquery_columns || CHR(10);
+                ELSE
+                    v_query := v_query || '*' || CHR(10);
+                END IF;
+                
+                IF v_subquery_tables IS NULL THEN
+                    RAISE_APPLICATION_ERROR(-20007, 'No tables specified in subquery.');
+                ELSE
+                    v_query := v_query || CHR(9) || ' FROM ' || v_subquery_tables || CHR(10);
+                END IF;
+                
+                IF v_subquery_join_type IS NOT NULL THEN
+                    IF v_subquery_join_type IN ('inner', 'outer', 'right', 'left', 'full') THEN
+                        v_query := v_query || CHR(9) || ' ' || UPPER(v_subquery_join_type) || ' JOIN ' || v_subquery_join_table || CHR(10) || CHR(9) || ' ON ' || v_subquery_join_conditions || CHR(10);
+                    ELSE
+                        RAISE_APPLICATION_ERROR(-20008, 'Invalid join type specified in subquery.');
+                    END IF;
+                END IF;
+                
+                IF v_subquery_filter_conditions IS NOT NULL THEN
+                    IF v_subquery_join_conditions IS NOT NULL THEN
+                        v_query := v_query || CHR(9) || ' AND ' || v_subquery_filter_conditions;
+                    ELSE
+                        v_query := v_query || CHR(9) || ' WHERE ' || v_subquery_filter_conditions;
+                    END IF;
+                END IF;
+                IF v_type!='INSERT' THEN
+                     v_query := v_query || ')';
+                END IF;
+            ELSE 
+                RAISE_APPLICATION_ERROR(-20009, 'Incorrect filter conditions type in JSON data.');
+            END IF;
+        END IF;
+    END IF;
+
+    -- Вывод сформированного запроса
+    DBMS_OUTPUT.PUT_LINE('Generated Query: ' || CHR(10) || v_query || CHR(10) );
+
+    -- Выполнение SQL запроса
+    --EXECUTE IMMEDIATE v_query;
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An error occurred: ' || SQLERRM);
+END execute_dynamic_query;
+
+-------------------------------------------------------------------------------------
+
+4 и 5 задания
+
+{
+    "query_type": "CREATE TABLE",
+    "table": "employees3",
+    "columns": [
+        {"name": "employee_id", "type": "NUMBER"},
+        {"name": "first_name", "type": "VARCHAR2(50)"},
+        {"name": "last_name", "type": "VARCHAR2(50)"},
+        {"name": "department_id", "type": "NUMBER"}
+    ],
+    "primary_keys": ["employee_id"],
+    "foreign_keys": [
+        {"field": "department_id", "table": "departments", "ref_field": "department_id"}
+    ]
+}
+
+
+CREATE TABLE employees3
+ (
+	employee_id NUMBER, 
+	first_name VARCHAR2(50), 
+	last_name VARCHAR2(50), 
+	department_id NUMBER, 
+	constraint pk_employees3_employee_id primary key (employee_id), 
+	constraint fk_employees3_department_id FOREIGN KEY (department_id) REFERENCES department(department_id)
+);
+
+CREATE SEQUENCE employees3_seq start with 1;
+
+CREATE OR REPLACE TRIGGER tr_employees3_pk_autoincrement
+BEFORE INSERT ON employees3 FOR EACH ROW
+BEGIN
+  SELECT employees3_seq.NEXTVAL INTO :NEW.employee_id FROM DUAL;
+END;
+
+
+
+{
+    "query_type": "DROP TABLE",
+    "table": "employees3",
+    
+}
+
+DROP TABLE employees3
+---------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE generate_ddl(
+    json_str CLOB
+) AS
+    v_query_type VARCHAR2(20);
+    v_tables VARCHAR2(100);
+    v_columns VARCHAR2(4000);
+    v_pks VARCHAR2(4000);
+    v_fks VARCHAR2(4000);
+    v_trigger VARCHAR2(4000);
+    v_drop_param VARCHAR2(20);
+    v_sql VARCHAR2(4000);
+    v_pk_column VARCHAR2(4000);
+BEGIN
+    -- Определяем тип операции
+    v_query_type := json_value(json_str, '$.query_type');
+
+    -- Создание таблицы
+    IF v_query_type = 'CREATE TABLE' THEN
+        -- Получаем имя таблицы
+        SELECT json_value(json_str, '$.table') INTO v_tables FROM dual;
+
+        -- Получаем столбцы таблицы
+        SELECT LISTAGG(column_name || ' ' || data_type, ', '|| chr(10)|| chr(9)) WITHIN GROUP (ORDER BY column_id) INTO v_columns
+        FROM JSON_TABLE(json_str, '$.columns[*]'
+            COLUMNS (
+                column_id FOR ORDINALITY,
+                column_name VARCHAR2(100) PATH '$.name',
+                data_type VARCHAR2(100) PATH '$.type'
+            )
+        );
+
+        -- Получаем первичные ключи
+               SELECT LISTAGG ('constraint pk_' || v_tables || '_' || col_name || ' primary key (' || col_name || ')', ', ') INTO v_pks
+        FROM JSON_TABLE (json_str,
+            '$.primary_keys[*]' COLUMNS (col_name VARCHAR2 (4000) PATH '$')) j;
+
+        -- Получаем внешние ключи
+        SELECT LISTAGG('constraint fk_' || v_tables || '_' || col_name || ' FOREIGN KEY (' || col_name || ') REFERENCES ' || ref_table || '(' || ref_field || ')', ', ') INTO v_fks
+        FROM JSON_TABLE(json_str, '$.foreign_keys[*]'
+            COLUMNS (
+                col_name VARCHAR2(100) PATH '$.field',
+                ref_table VARCHAR2(100) PATH '$.table',
+                ref_field VARCHAR2(100) PATH '$.ref_field'
+            )
+        );
+
+        -- Формируем DDL для создания таблицы
+        v_sql := 'CREATE TABLE ' || v_tables || chr(10) ||
+         ' (' || chr(10) ||
+         chr(9) || v_columns  || ', ' || chr(10) ||
+         chr(9) || v_pks || ', ' || chr(10) ||
+         chr(9) || v_fks || chr(10) ||
+         ');';
+
+        -- Создание последовательности
+        SELECT json_value(json_str, '$.primary_keys[0]') INTO v_pk_column
+        FROM dual;
+        
+        -- Создание последовательности
+        v_sql := v_sql || chr(10) || chr(10) || 'CREATE SEQUENCE ' || v_tables || '_seq START WITH 1;' || chr(10) || chr(10) || 
+                 'CREATE OR REPLACE TRIGGER tr_' || v_tables  || '_pk_autoincrement' || chr(10) || 
+                 'BEFORE INSERT ON ' || v_tables || 
+                 ' FOR EACH ROW' || chr(10) ||
+                 'BEGIN' || chr(10) ||
+                 '  SELECT ' || v_tables || '_seq.NEXTVAL INTO :NEW.' || v_pk_column || ' FROM DUAL;' || chr(10) ||
+                 'END;';
+
+    -- Удаление таблицы
+    ELSIF v_query_type = 'DROP TABLE' THEN
+        -- Получаем имя таблицы для удаления
+        SELECT json_value(json_str, '$.table') INTO v_tables FROM dual;
+
+        -- Получаем параметр для удаления (пурж)
+        v_drop_param := json_value(json_str, '$.parameters');
+
+        -- Формируем DDL для удаления таблицы
+        v_sql := 'DROP TABLE ' || v_tables;
+        IF v_drop_param = 'purge' THEN
+            v_sql := v_sql || ' PURGE';
+        END IF;
+
+    END IF;
+
+    -- Выводим сгенерированный SQL
+    DBMS_OUTPUT.PUT_LINE('Сгенерированный SQL:');
+    DBMS_OUTPUT.PUT_LINE(v_sql);
+END;
+
+
+***********************************************************************************************************************
+***********************************************************************************************************************
+***********************************************************************************************************************
+
+LAB_05:
+
+
+
 
