@@ -5,17 +5,6 @@ from client import Client
 from hacker import Hacker
 
 
-class RSTMiddleware:
-    def __init__(self):
-        self.call_number = 0
-
-    def change(self, package):
-        self.call_number += 1
-        if self.call_number == 5:
-            package.rst = True
-        return package
-
-
 class TcpResetMiddleware:
     def __init__(self):
         self.call_number = 0
@@ -36,32 +25,6 @@ class PassiveScan:
         if self.call_number >= 5 and self.call_number % 5 == 0:
             package.ip.payload = "Passive scan"
             print("Information: ", "syn:", package.syn, "ack:", package.ack, "rst:", package.rst)
-        return package
-
-
-class Sniffing:
-    def __init__(self):
-        self.call_number = 0
-
-    def change(self, package):
-        self.call_number += 1
-        if self.call_number >= 5:
-            package.ip.payload = "Sniffing"
-            print("Information: ", repr(package))
-        return package
-
-
-class FakeIpAddressMiddleware:
-    def __init__(self, ip_address, tcp_port):
-        self.ip_address = ip_address
-        self.tcp_port = tcp_port
-        self.call_number = 0
-
-    def change(self, package):
-        self.call_number += 1
-        if self.call_number == 5:
-            package.ip.destination_ip = self.ip_address
-            package.destination_port = self.tcp_port
         return package
 
 
@@ -88,12 +51,11 @@ def run_attacks():
     server2 = Hacker(331, 2)
 
     tcp_reset_middleware = TcpResetMiddleware()
-    sniffing = Sniffing()
+
     passive_scan = PassiveScan()
-    fake_ip_address_middleware = FakeIpAddressMiddleware(331, 2)
-    rst_middleware = RSTMiddleware()
+
     connection_hijack = ConnectionHijack()
-    connection = Connection([client, server1, server2], [connection_hijack])
+    connection = Connection([client, server1, server2], [passive_scan])
 
     client.call_any_other(connection)
 

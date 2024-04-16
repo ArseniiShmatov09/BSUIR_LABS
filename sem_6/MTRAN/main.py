@@ -3,6 +3,8 @@ from const import *
 from Token import *
 from Lexer import Lexer
 from utils import *
+from parserTree import Parser
+from interpreter import Interpreter
 
 def main():
  
@@ -17,8 +19,14 @@ def main():
         display_error(code, error_position)
    
     result = get_token_table(code) 
-    print(result[0])
+    tokens = result[0]
     print(result[1])
+    parser = Parser(tokens)
+    expressions = parser.parse()
+    construct_tree(expressions)
+    interpreter = Interpreter(expressions)
+    interpreter.interpret()
+
 
 if __name__ == "__main__":
     main()

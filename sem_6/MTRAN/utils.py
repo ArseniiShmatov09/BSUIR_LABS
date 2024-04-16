@@ -4,6 +4,7 @@ from Token_type import *
 from const import *
 from Token import *
 from utils import *
+from expressions import CallExpr, DefineExpr, IfExpr, LambdaExpr, LiteralExpr, NULL_VALUE, SymbolExpr, ListExpr, QuoteExpr
 
 def display_error(code, error_position):
     line, column = get_line_and_column_skob(code, error_position)
@@ -107,7 +108,11 @@ def get_token_table(code):
             if not t.type:
                     print(f"ОШИБКА '{t.name}': Unknown type")
                     errors = 1
-
+        for tt in tokens:
+            if tt.type.name == 'number':
+                tt.name = int(tt.name)
+            if tt.type.name == 'boolean':
+                tt.name = bool(tt.name)
     if tokens[0].name !='(':
         print(f"ОШИБКА '{tokens[0].name}': Код должен начинаться с символа '('")
         errors = 1
@@ -116,8 +121,69 @@ def get_token_table(code):
         errors = 1
     headers = ["Token", "Type", "Line", "Column"]
     
-
+    tokens.append(Token('eof', 'eof', 0))
     return tokens, (tabulate(table_data, headers=headers))
 
 
-    
+def construct_tree(expr, indent='|--  '):
+    if isinstance(expr, list):
+        for prop in expr:
+            if isinstance(prop, DefineExpr):
+                print(indent + "Define")
+                construct_tree(prop.variable, '  ' + indent)
+                construct_tree(prop.value, '  ' + indent)
+            elif isinstance(prop, CallExpr):
+                print(indent + "Call")
+                construct_tree(prop.called, '  ' + indent)
+                construct_tree(prop.args, '  ' + indent)
+            elif isinstance(prop, IfExpr):
+                print(indent + 'If')
+                construct_tree(prop.condition, '  ' + indent)
+                construct_tree(prop.trueExpr, '  ' + indent)
+                construct_tree(prop.falseExpr, '  ' + indent)
+            elif isinstance(prop, LambdaExpr):
+                print(indent + 'Lambda')
+                construct_tree(prop.args, '  ' + indent)
+                construct_tree(prop.body, '  ' + indent)
+            elif isinstance(prop, QuoteExpr):
+                print(indent + 'Quote')
+                construct_tree(prop.value, '  ' + indent)
+            elif isinstance(prop, ListExpr):
+                print(indent + 'List')
+                construct_tree(prop.items, '  ' + indent)
+            elif isinstance(prop, LiteralExpr):
+                print(indent + str(prop.token.name))
+            elif isinstance(prop, Token):
+                print(indent + str(prop.name))
+            elif isinstance(prop, SymbolExpr):
+                print(indent + str(prop.token.name))
+            else:
+                construct_tree(prop, '  ' + indent)
+    else:
+        if isinstance(expr, CallExpr):
+            print(indent + "Call")
+            construct_tree(expr.called, '  ' + indent)
+            construct_tree(expr.args, '  ' + indent)
+        elif isinstance(expr, LiteralExpr):
+            print(indent + str(expr.token.name))
+        elif isinstance(expr, IfExpr):
+            print(indent + 'If')
+            construct_tree(expr.condition, '  ' + indent)
+            construct_tree(expr.trueExpr, '  ' + indent)
+            construct_tree(expr.falseExpr, '  ' + indent)
+        elif isinstance(expr, LambdaExpr):
+            print(indent + 'Lambda')
+            construct_tree(expr.args, '  ' + indent)
+            construct_tree(expr.body, '  ' + indent)
+        elif isinstance(expr, QuoteExpr):
+            print(indent + 'Quote')
+            construct_tree(expr.value, '  ' + indent)
+        elif isinstance(expr, ListExpr):
+            print(indent + 'List')
+            construct_tree(expr.items, '  ' + indent)
+        elif isinstance(expr, Token):
+            print(indent + str(expr.name))
+        elif isinstance(expr, SymbolExpr):
+            print(indent + str(expr.token.name))
+
+
