@@ -1530,6 +1530,553 @@ END;
 
 LAB_05:
 
+-- Создание таблиц
+
+CREATE TABLE books (
+    book_id NUMBER PRIMARY KEY,
+    title VARCHAR2(200),
+    author VARCHAR2(100),
+    genre VARCHAR2(50),
+    publication_date DATE
+);
+
+CREATE TABLE readers (
+    reader_id NUMBER PRIMARY KEY,
+    name VARCHAR2(100),
+    email VARCHAR2(100),
+    registration_date DATE
+);
+
+CREATE TABLE book_loans (
+    loan_id NUMBER PRIMARY KEY,
+    book_id NUMBER,
+    reader_id NUMBER,
+    loan_date DATE,
+    return_date DATE,
+    CONSTRAINT fk_book_id FOREIGN KEY (book_id) REFERENCES books(book_id),
+    CONSTRAINT fk_reader_id FOREIGN KEY (reader_id) REFERENCES readers(reader_id)
+);
+
+--создание таблиц с логированием
+CREATE TABLE AUDIT_LOGS (
+	TABLE_NAME VARCHAR2(200 BYTE), 
+	ACTION_TYPE VARCHAR2(200 BYTE), 
+	ACTION_DATE TIMESTAMP (6), 
+	BOOK_ID NUMBER, 
+	TITLE VARCHAR2(200 BYTE), 
+	AUTHOR VARCHAR2(200 BYTE), 
+	GENRE VARCHAR2(200 BYTE), 
+	PUBLICATION_DATE" DATE
+   )
+
+CREATE TABLE BOOK_LOANS_LOGS( 
+    TABLE_NAME VARCHAR2(200 BYTE), 
+	ACTION_TYPE VARCHAR2(200 BYTE), 
+	ACTION_DATE TIMESTAMP (6), 
+    	LOAN_ID NUMBER, 
+    	BOOK_ID NUMBER, 
+    	READER_ID NUMBER, 
+	LOAN_DATE DATE,
+	RETURN_DATE DATE
+   )
+
+CREATE TABLE "READERS_LOGS
+   (	TABLE_NAME VARCHAR2(200 BYTE), 
+	ACTION_TYPE VARCHAR2(200 BYTE), 
+	ACTION_DATE TIMESTAMP (6), 
+	READER_ID NUMBER, 
+	NAME VARCHAR2(100 BYTE), 
+	EMAIL VARCHAR2(100 BYTE), 
+	REGISTRATION_DATE DATE
+   )
+CREATE TABLE "REPORTS_LOGS
+   (	BOOK_ID NUMBER, 
+	REPORT_DATE TIMESTAMP (6)
+   )
+
+
+--заполнение данными
+INSERT INTO book_loans (loan_id, book_id, reader_id, loan_date, return_date) VALUES (1, 1, 2, TO_DATE('2024-04-01', 'YYYY-MM-DD'), TO_DATE('2024-04-10', 'YYYY-MM-DD'));
+INSERT INTO book_loans (loan_id, book_id, reader_id, loan_date, return_date) VALUES(2, 1, 2, TO_DATE('2024-04-02', 'YYYY-MM-DD'), TO_DATE('2024-04-09', 'YYYY-MM-DD'));
+
+INSERT INTO books (book_id, title, author, genre, publication_date) VALUES(1, 'To Kill a Mockingbird', 'Harper Lee', 'Fiction', TO_DATE('1960-07-11', 'YYYY-MM-DD'));
+INSERT INTO books (book_id, title, author, genre, publication_date)VALUES(2, '1984', 'George Orwell', 'Dystopian Fiction', TO_DATE('1949-06-08', 'YYYY-MM-DD'));
+
+INSERT INTO ARSENII09.READERS (READER_ID, NAME, EMAIL, REGISTRATION_DATE)VALUES (1, 'John Doe', 'john.doe@example.com', TO_DATE('2024-04-01', 'YYYY-MM-DD'));
+INSERT INTO ARSENII09.READERS (READER_ID, NAME, EMAIL, REGISTRATION_DATE)VALUES (2, 'Jane Smith', 'jane.smith@example.com', TO_DATE('2024-04-02', 'YYYY-MM-DD'));
+
+--триггеры для заполнения логирований
+create or replace NONEDITIONABLE TRIGGER books_dml_trigger
+AFTER INSERT OR UPDATE OR DELETE ON books
+FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        INSERT INTO audit_logs (table_name, action_type, action_date, book_id, title, author, genre, publication_date)
+        VALUES ('books', 'INSERT', SYSDATE, :NEW.book_id, :NEW.title, :NEW.author, :NEW.genre, :NEW.publication_date);
+    ELSIF UPDATING THEN
+        INSERT INTO audit_logs (table_name, action_type, action_date, book_id, title, author, genre, publication_date)
+        VALUES ('books', 'UPDATE', SYSDATE, :NEW.book_id, :NEW.title, :NEW.author, :NEW.genre, :NEW.publication_date);
+    ELSIF DELETING THEN
+        INSERT INTO audit_logs (table_name, action_type, action_date, book_id, title, author, genre, publication_date)
+        VALUES ('books', 'DELETE', SYSDATE, :OLD.book_id, :OLD.title, :OLD.author, :OLD.genre, :OLD.publication_date);
+    END IF;
+END;
+
+
+create or replace TRIGGER readers_dml_trigger
+AFTER INSERT OR UPDATE OR DELETE ON readers
+FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        INSERT INTO reader_logs (table_name, action_type, action_date, reader_id, name, email, registration_date)
+        VALUES ('readers', 'INSERT', SYSDATE, :NEW.reader_id, :NEW.name, :NEW.email, :NEW.registration_date);
+    ELSIF UPDATING THEN
+        INSERT INTO reader_logs (table_name, action_type, action_date, reader_id, name, email, registration_date)
+        VALUES ('readers', 'UPDATE', SYSDATE, :NEW.reader_id, :NEW.name, :NEW.email, :NEW.registration_date);
+    ELSIF DELETING THEN
+        INSERT INTO reader_logs (table_name, action_type, action_date, reader_id, name, email, registration_date)
+        VALUES ('readers', 'DELETE', SYSDATE, :OLD.reader_id, :OLD.name, :OLD.email, :OLD.registration_date);
+    END IF;
+END;
+
+create or replace NONEDITIONABLE TRIGGER BOOK_LOANS_dml_trigger
+AFTER INSERT OR UPDATE OR DELETE ON BOOK_LOANS
+FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        INSERT INTO BOOK_LOANS_LOGS (table_name, action_type, action_date, loan_id, book_id, reader_id, loan_date, return_date)
+        VALUES ('book_loans', 'INSERT', SYSDATE, :NEW.loan_id, :NEW.book_id, :NEW.reader_id, :NEW.loan_date, :NEW.return_date);
+    ELSIF UPDATING THEN
+        INSERT INTO BOOK_LOANS_LOGS (table_name, action_type, action_date, loan_id, book_id, reader_id, loan_date, return_date)
+        VALUES ('book_loans', 'UPDATE', SYSDATE, :NEW.loan_id, :NEW.book_id, :NEW.reader_id, :NEW.loan_date, :NEW.return_date);
+    ELSIF DELETING THEN
+        INSERT INTO BOOK_LOANS_LOGS (table_name, action_type, action_date, loan_id, book_id, reader_id, loan_date, return_date)
+        VALUES ('book_loans', 'DELETE', SYSDATE, :OLD.loan_id, :OLD.book_id, :OLD.reader_id, :OLD.loan_date, :OLD.return_date);
+    END IF;
+END;
+
+--триггеры для каскадного удаления из 3 таблицы
+create or replace NONEDITIONABLE TRIGGER CASCADE_DELETE_BOOK
+BEFORE DELETE ON BOOKS  
+FOR EACH ROW
+BEGIN
+    DELETE FROM BOOK_LOANS
+    WHERE book_id = :OLD.book_id;
+END;
+
+
+create or replace NONEDITIONABLE TRIGGER CASCADE_DELETE_READER
+BEFORE DELETE ON READERS  
+FOR EACH ROW
+BEGIN
+    DELETE FROM BOOK_LOANS
+    WHERE READER_id = :OLD.READER_id;
+END;
+
+--пакеты для перегрузки функций
+create or replace NONEDITIONABLE PACKAGE table_view_package IS
+
+    PROCEDURE table_view(
+        table_name VARCHAR2,
+        time_at TIMESTAMP
+    );
+
+    PROCEDURE table_view(
+        table_name VARCHAR2,
+        interval_time NUMBER
+    );
+    
+    PROCEDURE table_view_fk(
+        table_name VARCHAR2,
+        time_at TIMESTAMP
+    );
+
+    PROCEDURE table_view_fk(
+        table_name VARCHAR2,
+        interval_time NUMBER
+    );
+    PROCEDURE report(
+        t_begin IN TIMESTAMP
+    );
+
+    PROCEDURE report;
+END table_view_package;
+
+
+create or replace NONEDITIONABLE PACKAGE BODY table_view_package IS
+
+    PROCEDURE table_view(
+        table_name VARCHAR2,
+        time_at TIMESTAMP
+    ) IS
+    BEGIN
+        table_view_by_time(table_name, time_at);
+    END table_view;
+
+    
+    PROCEDURE table_view(
+        table_name VARCHAR2,
+        interval_time NUMBER
+    ) IS
+    BEGIN
+        DECLARE
+            current_time timestamp := systimestamp;
+        BEGIN
+            current_time := current_time - numtodsinterval(interval_time / 1000, 'SECOND');
+            table_view_by_time(table_name, current_time);
+        END;
+    END table_view;
+    
+    PROCEDURE table_view_fk(
+        table_name VARCHAR2,
+        time_at TIMESTAMP
+    ) IS
+    BEGIN
+        table_view_by_time_fk(table_name, time_at);
+    END table_view_fk;
+
+    
+    PROCEDURE table_view_fk(
+        table_name VARCHAR2,
+        interval_time NUMBER
+    ) IS
+    BEGIN
+        DECLARE
+            current_time timestamp := systimestamp;
+        BEGIN
+            current_time := current_time - numtodsinterval(interval_time / 1000, 'SECOND');
+            table_view_by_time_fk(table_name, current_time);
+        END;
+    END table_view_fk;
+
+        PROCEDURE report(
+        t_begin IN TIMESTAMP
+    ) IS
+        v_cur timestamp := systimestamp;
+    BEGIN
+        create_report_html(t_begin, v_cur);
+        INSERT INTO reports_logs(
+            report_date
+        ) VALUES(
+            v_cur
+        );
+    END report;
+    
+    PROCEDURE report IS
+        v_begin timestamp := to_timestamp('1/1/1 1:1:1', 'YYYY/MM/DD HH:MI:SS');
+        v_cur   timestamp := systimestamp;
+        v_count NUMBER;
+    BEGIN
+        SELECT COUNT( * ) INTO v_count
+        FROM reports_logs;
+        IF (v_count > 0) THEN
+            SELECT report_date INTO v_begin
+            FROM reports_logs
+            WHERE id = (
+                    SELECT MAX(id)
+                    FROM reports_logs
+                );
+        END IF;
+    
+        create_report_html(v_begin, v_cur);
+        INSERT INTO reports_logs(
+            report_date
+        ) VALUES(
+            v_cur
+        );
+    END report;
+
+    
+END table_view_package;
+
+
+--процедуры которая возвращает вид на конкретное время(3 задание)
+create or replace NONEDITIONABLE procedure table_view_by_time(
+table_name IN VARCHAR2,
+time_at IN TIMESTAMP
+)
+AS
+    v_action_type VARCHAR2(4000);
+    v_action_date VARCHAR2(4000);
+    v_book_id VARCHAR2(4000);
+    v_title VARCHAR2(4000);
+    v_author VARCHAR2(4000);
+    v_genre VARCHAR2(4000);
+    v_publication_date VARCHAR2(4000);
+    
+    v_reader_id VARCHAR2(4000);
+    v_name VARCHAR2(4000);
+    v_email VARCHAR2(4000);
+    v_registration_date VARCHAR2(4000);
+
+    v_loan_id VARCHAR2(4000);
+    v_loan_date VARCHAR2(4000);
+    v_return_date VARCHAR2(4000);
+    current_time timestamp := systimestamp;
+Begin    
+    IF table_name = 'books' THEN
+        DELETE FROM books;
+        FOR action_row IN (SELECT *
+                           FROM AUDIT_LOGS
+                           WHERE action_date <= TO_TIMESTAMP(time_at, 'DD.MM.YYYY HH24:MI:SS,FF')
+                           ORDER BY action_date, rowid) 
+            
+            LOOP
+            v_action_type := action_row.action_type;
+            v_action_date := action_row.action_date;
+            v_book_id := action_row.book_id;
+            v_title := action_row.title;
+            v_author := action_row.author;
+            v_genre := action_row.genre;
+            v_publication_date := action_row.publication_date;
+            
+            if v_action_type = 'INSERT' then
+                INSERT INTO books(book_id, title, author, genre, publication_date) 
+                values
+                (v_book_id, v_title, v_author, v_genre, v_publication_date);
+            elsif v_action_type = 'DELETE' then
+                delete from books where book_id = v_book_id;
+            elsif v_action_type = 'UPDATE' then
+                UPDATE books
+                SET book_id = v_book_id,
+                    title = v_title,
+                    author = v_author,
+                    genre = v_genre,
+                    publication_date = v_publication_date 
+                WHERE book_id = v_book_id;
+            end if;
+            END LOOP; 
+    DELETE FROM AUDIT_LOGS
+    WHERE
+        action_date >= current_time;
+    ELSIF table_name = 'readers' THEN
+        DELETE FROM readers;
+        FOR action_row IN (SELECT *
+                           FROM READERS_LOGS
+                           WHERE action_date <= TO_TIMESTAMP(time_at, 'DD.MM.YYYY HH24:MI:SS,FF')
+                           ORDER BY action_date, rowid) 
+            
+            LOOP
+            v_action_type := action_row.action_type;
+            v_action_date := action_row.action_date;
+            v_reader_id := action_row.reader_id ;
+            v_name := action_row.name ;
+            v_email := action_row.email ;
+            v_registration_date := action_row.registration_date ;
+            
+            if v_action_type = 'INSERT' then
+                INSERT INTO readers(reader_id, name, email, registration_date) 
+                values
+                (v_reader_id, v_name, v_email, v_registration_date);
+            elsif v_action_type = 'DELETE' then
+                delete from readers where reader_id = v_reader_id;
+            elsif v_action_type = 'UPDATE' then
+                UPDATE readers
+                SET reader_id = v_reader_id,
+                    name = v_name,
+                    email = v_email,
+                    registration_date = v_registration_date 
+                WHERE reader_id = v_reader_id;
+            end if;
+            END LOOP;  
+    DELETE FROM READERS_LOGS
+    WHERE
+        action_date >= current_time;         
+    ELSE
+        RAISE_APPLICATION_ERROR(-20008, 'Unknown table: ' || table_name);
+    END IF;
+end;
+
+
+create or replace NONEDITIONABLE procedure table_view_by_time_fk(
+table_name IN VARCHAR2,
+time_at IN TIMESTAMP
+)
+AS
+    v_action_type VARCHAR2(4000);
+    v_action_date VARCHAR2(4000);
+    v_book_id VARCHAR2(4000);
+    v_reader_id VARCHAR2(4000);
+    v_loan_id VARCHAR2(4000);
+    v_loan_date VARCHAR2(4000);
+    v_return_date VARCHAR2(4000);
+    current_time timestamp := systimestamp;
+Begin    
+
+    IF table_name = 'book_loans' THEN
+        begin
+            table_view_package.table_view('books', TO_TIMESTAMP(time_at, 'DD.MM.YYYY HH24:MI:SS,FF')); 
+        end;
+        begin
+            table_view_package.table_view('readers', TO_TIMESTAMP(time_at, 'DD.MM.YYYY HH24:MI:SS,FF')); 
+        end;
+
+        DELETE FROM BOOK_LOANS;
+        FOR action_row IN (SELECT *
+                           FROM BOOK_LOANS_LOGS
+                           WHERE action_date <= TO_TIMESTAMP(time_at, 'DD.MM.YYYY HH24:MI:SS,FF')
+                           ORDER BY action_date, rowid) 
+
+            LOOP
+            v_action_type := action_row.action_type;
+            v_action_date := action_row.action_date;
+            v_loan_id := action_row.loan_id;
+            v_book_id := action_row.book_id;
+            v_reader_id := action_row.reader_id;
+            v_loan_date := action_row.loan_date;
+            v_return_date := action_row.return_date;
+
+            if v_action_type = 'INSERT' then
+                INSERT INTO book_loans(loan_id, book_id, reader_id, loan_date, return_date) 
+                values
+                (v_loan_id, v_book_id, v_reader_id, v_loan_date, v_return_date);
+            elsif v_action_type = 'DELETE' then
+                delete from book_loans where loan_id = v_loan_id;
+            elsif v_action_type = 'UPDATE' then
+                UPDATE book_loans
+                SET 
+                    loan_id = v_loan_id,
+                    book_id = v_book_id,
+                    reader_id = v_reader_id,
+                    loan_date = v_loan_date,
+                    return_date = v_return_date
+                WHERE loan_id = v_loan_id;
+            end if;
+            END LOOP;  
+    DELETE FROM BOOK_LOANS_LOGS
+    WHERE
+        action_date >= current_time;        
+    ELSE
+        RAISE_APPLICATION_ERROR(-20008, 'Unknown table: ' || table_name);
+    END IF;
+end;
+
+--скрипт для создания отчетов HTML
+
+create or replace NONEDITIONABLE PROCEDURE create_report_html(t_begin IN TIMESTAMP, t_end IN TIMESTAMP) AS
+    v_result VARCHAR2(4000);
+    i_count  NUMBER;
+    u_count  NUMBER;
+    d_count  NUMBER;
+BEGIN
+    v_result :=
+    '<!DOCTYPE html>
+     <html lang="en">
+     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+     </head>
+     <body>
+        <table>
+          <tr>
+            <th>Table</th>
+            <th>INSERT</th>
+            <th>UPDATE</th>
+            <th>DELETE</th>
+          </tr>
+                      ';
+    SELECT COUNT( * ) INTO u_count
+    FROM audit_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'UPDATE';
+    SELECT COUNT( * ) INTO i_count
+    FROM audit_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'INSERT';
+    SELECT COUNT( * ) INTO d_count
+    FROM audit_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'DELETE';
+    v_result := v_result || '<tr>
+                               <td>TABLE BOOKS</td>
+                               <td>' || i_count || '</td>
+                               <td>' || u_count || '</td>
+                               <td>' || d_count || '</td>
+                             </tr>
+                              ';
+    SELECT COUNT( * ) INTO u_count
+    FROM readers_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'UPDATE';
+    SELECT COUNT( * ) INTO i_count
+    FROM readers_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'INSERT';
+    SELECT COUNT( * ) INTO d_count
+    FROM readers_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'DELETE';
+    v_result := v_result || '<tr>
+                               <td>TABLE READERS</td>
+                               <td>' || i_count || '</td>
+                               <td>' || u_count || '</td>
+                               <td>' || d_count || '</td>
+                             </tr>
+                              ';
+    SELECT COUNT( * ) INTO u_count
+    FROM book_loans_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'UPDATE';
+    SELECT COUNT( * ) INTO i_count
+    FROM book_loans_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'INSERT';
+    SELECT COUNT( * ) INTO d_count
+    FROM book_loans_logs
+    WHERE action_date BETWEEN t_begin AND t_end
+        AND action_type = 'DELETE';
+    v_result := v_result || '<tr>
+                               <td>TABLE BOOK_LOANS</td>
+                               <td>' || i_count || '</td>
+                               <td>' || u_count || '</td>
+                               <td>' || d_count || '</td>
+                             </tr>
+                              ';
+    v_result := v_result ||
+    '</table>
+</body>
+</html>';
+    dbms_output.put_line(v_result);
+END;
+
+
+--ПРОВЕРКА ВСЕГО(просто солянка в одном файле)
+delete from book_loans;
+delete from book_loans_logs;
+
+delete from readers;
+delete from readers_logs;
+
+delete from books;
+delete from audit_logs;
+
+select * from books;
+select * from audit_logs;
+
+update books set author = 'ARSEN' where book_id = 1; 
+
+select * from readers;
+select * from readers_logs;
+
+update readers set name = 'ARSEN' where reader_id = 2; 
+
+select * from book_loans;
+select * from book_loans_logs;
+
+update book_loans set book_id = 1 where loan_id = 2; 
+
+
+
+--запуск всех вариантов процедур
+begin table_view_package.table_view_fk('book_loans', 300000); end;
+begin table_view_package.table_view_fk('book_loans', TO_TIMESTAMP('2024-04-06 02:08:04', 'YYYY-MM-DD HH24:MI:SS')); end;
+begin table_view_by_time('readers', TO_TIMESTAMP('2024-04-06 01:53:20', 'YYYY-MM-DD HH24:MI:SS')); end;
+begin table_view_by_time('books', TO_TIMESTAMP('2024-04-16 20:36:00', 'YYYY-MM-DD HH24:MI:SS')); end;
+
+set serveroutput on;
+begin table_view_package.report(TO_TIMESTAMP('2024-04-16 20:36:00', 'YYYY-MM-DD HH24:MI:SS')); end;
+begin table_view_package.report(); end;
 
 
 

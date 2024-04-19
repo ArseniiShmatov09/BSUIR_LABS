@@ -8,10 +8,9 @@ from bd_config import *
 class LoginWindow:
     def __init__(self, master):
         self.master = master
-        self.master.title("Login")
+        self.master.title("")
         window_width = 400
         window_height = 200
-        self.master.geometry(f"{window_width}x{window_height}")
         self.center_window()
         self.username_label = tk.Label(master, text="Username:")
         self.username_label.pack()
@@ -34,7 +33,7 @@ class LoginWindow:
         screen_height = self.master.winfo_screenheight()
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 8
-        self.master.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
         
 
     def validate_login(self):
@@ -68,10 +67,8 @@ class LoginWindow:
         screen_height = self.master.winfo_screenheight()
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
-        welcome_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
-        welcome_label = tk.Label(welcome_window, text=f"Welcome, {user[1]}!\n{phrase}", wraplength=300)
-        welcome_label.pack(padx=20, pady=10)
+
 
          # the principle of minimizing privileges
         if user[3] == 'Admin':
@@ -93,7 +90,6 @@ class LoginWindow:
                 screen_height = self.master.winfo_screenheight()
                 x = (screen_width - window_width) // 2
                 y = (screen_height - window_height) // 2
-                all_users_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
                 conn = sqlite3.connect('users.db')
                 c = conn.cursor()
@@ -107,9 +103,6 @@ class LoginWindow:
                 users_listbox = tk.Listbox(all_users_window)
                 users_listbox.pack(fill=tk.BOTH, expand=True)
 
-                for user in users:
-                    user_info = f"{user[1]} | {user[2]} | {user[3]}"
-                    users_listbox.insert(tk.END, user_info)
                     
             # DoS attack (denial of service)    
                 show_all_users_button.config(state=tk.DISABLED)
@@ -158,7 +151,6 @@ class LoginWindow:
         screen_height = self.master.winfo_screenheight()
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
-        add_user_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
         username_label = tk.Label(add_user_window, text="Username:")
         username_label.pack()
@@ -194,3 +186,9 @@ def main():
     root.mainloop()
 if __name__ == "__main__":
     main()
+
+x  =3
+if x > 0:
+    result = "Positive"
+else:
+    result = "Non-positive"

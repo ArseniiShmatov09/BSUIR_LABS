@@ -1,18 +1,18 @@
 import sqlite3
 def config():
     
-    conn = sqlite3.connect('users.db')
+    con = sqlite3.connect("users.db")
 
-    c = conn.cursor()
+    c = con.cursor()
 
     # Сохранение изменений
-    conn.commit()
+    con.commit()
     c.execute('''CREATE TABLE IF NOT EXISTS roles
                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL)''')
 
     # Сохранение изменений
-    conn.commit()
+    con.commit()
 
 
     roles_data = [
@@ -39,15 +39,15 @@ def config():
                 FOREIGN KEY(role_id) REFERENCES roles(id))''')
 
     # Сохраняем изменения
-    conn.commit()
+    con.commit()
     c.execute('SELECT * FROM users')
     users = c.fetchall()
     if not users:
         c.executemany('INSERT INTO users (username, password, role_id) VALUES (?, ?, ?)', users_data)
 
     # Сохраняем изменения
-    conn.commit()
+    con.commit()
 
     # Закрытие соединения
-    conn.close()
+    con.close()
 
