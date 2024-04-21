@@ -23,7 +23,7 @@ def main():
     print(result[1])
     parser = Parser(tokens)
     expressions = parser.parse()
-    construct_tree(expressions)
+   # construct_tree(expressions)
     interpreter = Interpreter(expressions)
     interpreter.interpret()
 

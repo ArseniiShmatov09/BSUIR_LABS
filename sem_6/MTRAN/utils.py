@@ -108,11 +108,11 @@ def get_token_table(code):
             if not t.type:
                     print(f"ОШИБКА '{t.name}': Unknown type")
                     errors = 1
-        for tt in tokens:
-            if tt.type.name == 'number':
-                tt.name = int(tt.name)
-            if tt.type.name == 'boolean':
-                tt.name = bool(tt.name)
+    for tt in tokens:
+        if tt.type.name == 'number':
+            tt.name = int(tt.name)
+        if tt.type.name == 'boolean':
+            tt.name = bool(tt.name)
     if tokens[0].name !='(':
         print(f"ОШИБКА '{tokens[0].name}': Код должен начинаться с символа '('")
         errors = 1

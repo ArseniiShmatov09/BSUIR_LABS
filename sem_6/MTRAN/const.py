@@ -61,6 +61,7 @@ KEY_WORDS = {
     'nan?': Token_type('symbol', r'nan\?'),
     'integer?': Token_type('symbol', r'integer\?'),
     'number?': Token_type('symbol', r'number\?'),
+    'null?': Token_type('symbol', r'null\?'),
     'inexact?': Token_type('symbol', r'inexact\?'),
     'exact?': Token_type('symbol', r'exact\?'),
     'real?': Token_type('symbol', r'real\?'),
@@ -152,6 +153,7 @@ TOKEN_TYPES = {
     'list-ref': Token_type('symbol', r'list-ref'),
     'list?': Token_type('symbol', r'list\?'),
     'list': Token_type('symbol', r'list'),
+    'null?': Token_type('symbol', r'null\?'),
 
      #key words functions
     'set-car!': Token_type('symbol', r'set-car!'),
