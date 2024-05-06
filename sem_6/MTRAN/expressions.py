@@ -19,6 +19,7 @@ class CallExpr(Expr):
         self.called = called
         self.args = args
 
+
 class SetExpr(Expr):
     def __init__(self, name, value):
         self.name = name
@@ -29,6 +30,10 @@ class LambdaExpr(Expr):
         self.args = args
         self.body = body
         self.isSpread = isSpread
+
+class FuncExpr(LambdaExpr):
+    pass
+
 
 class IfExpr(Expr):
     def __init__(self, condition, trueExpr, falseExpr):

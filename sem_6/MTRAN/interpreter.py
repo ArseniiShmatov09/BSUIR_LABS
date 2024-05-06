@@ -44,14 +44,20 @@ class Interpreter:
         self.env.define("list?", lambda a: isinstance(a, list))
         self.env.define("string-append", lambda str1, str2: str1 + str2)
         self.env.define("quote", lambda arg: arg)
+        self.env.define("length", lambda arg: length_procedure(arg))     
         self.env.define("car", lambda arg: arg[0])
         self.env.define("cdr", lambda arg: arg[1:])
         self.env.define("list", lambda *args: self.create_list(args))
         self.env.define('vector-ref', lambda list, index: vector_ref(list,index))
         self.env.define('vector-set!', lambda list, index, value: vector_set(list,index, value))
         self.env.define('make-list', lambda size, value: make_list(size, value))
-   
+        self.env.define('displayln', lambda arg: print(self.to_lisp_types(arg)))
 
+
+        def length_procedure(arg):
+            if not isinstance(arg, list):
+                raise SemanticError(f"In procedure 'length' Wrong type '{arg}'")
+            return len(arg)
         def vector_ref(list, index):
             if isinstance(index, int) and index >= 0 and index < len(list):
                 return list[index]
@@ -74,14 +80,14 @@ class Interpreter:
     def create_list(*args):
         return list(args)
 
-    def interpret(self, expressions=None):
-        result = None
-      
+    def interpret(self, expressions=None, env=None):
         expressions = expressions or self.expressions
-        
+        env = env or self.env
+        result = None
         for expr in expressions:
-            result = self.interpret_expr(expr, self.env)
+            result = self.interpret_expr(expr, env)
         return self.to_lisp_types(result)
+    
     def add(self, a, b):
         if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
             raise SemanticError(f"Wrong type for addition: {type(a)}, {type(b)}")

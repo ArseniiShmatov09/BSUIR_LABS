@@ -25,7 +25,8 @@ KEY_WORDS = {
     
     'quote': Token_type('symbol', r'quote'),
     'quote': Token_type('quote', r"'"),
-    
+    'quote': Token_type('quote', r"#"),
+
     'list-tail': Token_type('symbol', r'list-tail'),
     'list-ref': Token_type('symbol', r'list-ref'),
     'list?': Token_type('symbol', r'list\?'),
@@ -128,6 +129,7 @@ TOKEN_TYPES = {
     'constant "quote_tilda"': Token_type('quote constant', r'\`(?:\\.|[^"\\])*'),  
     'quote': Token_type('symbol', r'quote'),
     'quote': Token_type('quote', r"'"),
+    'quote': Token_type('quote', r"#"),
     'constant "true"': Token_type('boolean', r'#t'),
     'constant "false"': Token_type('boolean', r'#f'),
     'constant symbols': Token_type("symbols constant", r"'\([^)]+\)|'[^ )]+"),
@@ -257,7 +259,6 @@ TOKEN_TYPES = {
     '>=': Token_type('symbol', r'\>\='),
 
     #special symbols
-    '#': Token_type('special symbol', r'#'),
     ',': Token_type('special symbol', r','),
    # "'": Token_type('special symbol', r"'"),
    # "`": Token_type('special symbol', r"`"),

@@ -117,40 +117,62 @@ class Parser:
     def define(self):
         self.advance()
         variable = self.advance()
+        expr = None
+
+        if variable.type.name == 'openedBracket':
+            variable = self.advance()
+            expr = self.func()
+            return DefineExpr(variable, expr)
 
         if variable.type.name != 'symbol':
-            raise SyntaxError(f"Неверное имя переменной [{variable.pos} : ] {variable.name}")
-        expr = self.expression()
+            raise SyntaxError(f"Unexpected name [{variable.pos}] {variable.name}")
+
+        try:
+            expr = self.expression()
+        except:
+            expr = None
 
         if not self.match('closedBracket'):
-            raise SyntaxError('Не закрыта скобка')
-
+            raise SyntaxError("Unexpected EOF")
         return DefineExpr(variable, expr)
+
+    def get_func_arguments(self):
+        args = []
+        while not self.match('closedBracket'):
+            if not self.match('symbol'):
+                raise SyntaxError(f"Invalid list of argument [{self.peek().line}:{self.peek().position}]: {self.peek().lexeme}")
+            if any(arg.name == self.previous().name for arg in args):
+                raise SyntaxError(f"Duplicate identifier in argument list [{self.previous().pos}]: {self.previous().name}")
+            args.append(self.previous())
+        return args
+
+    def func(self):
+        args = self.get_func_arguments()
+        body = []
+
+        while not self.match('closedBracket'):
+            body.append(self.expression())
+
+        return FuncExpr(args, body)
 
     def lambda_(self):
         self.advance()
-        args = []
+        is_spread = False
 
+        args = []
         if self.match('symbol'):
             args.append(self.previous())
+            is_spread = True
         else:
             if not self.match('openedBracket'):
                 raise SyntaxError()
-
-            while not self.match('closedBracket'):
-                if not self.match('symbol'):
-                    raise SyntaxError(f"Неопределенный аргумент [{self.peek().pos}]: {self.peek().name}")
-
-                if any(arg.name == self.previous().name for arg in args):
-                    raise SyntaxError(f"Дублирование аргумента функции [{self.previous().pos}]: {self.previous().name}")
-
-                args.append(self.previous())
-
+            args.extend(self.get_func_arguments())
+        
         body = []
         while not self.match('closedBracket'):
             body.append(self.expression())
 
-        return LambdaExpr(args, body)
+        return LambdaExpr(args, body, is_spread)
 
     def if_(self):
         self.advance()
