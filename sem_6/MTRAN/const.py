@@ -24,6 +24,8 @@ KEY_WORDS = {
     'or': Token_type('symbol', r'or'),
     
     'quote': Token_type('symbol', r'quote'),
+    'quote': Token_type('quote', r"'"),
+    
     'list-tail': Token_type('symbol', r'list-tail'),
     'list-ref': Token_type('symbol', r'list-ref'),
     'list?': Token_type('symbol', r'list\?'),
@@ -32,6 +34,10 @@ KEY_WORDS = {
      #key words functions
     'set-car!': Token_type('symbol', r'set-car!'),
     'set-cdr!': Token_type('symbol', r'set-cdr!'),
+    'vector-set!': Token_type('symbol', r'vector-set!'),
+    'make-list': Token_type('symbol', r'make-list'),
+    'vector-ref': Token_type('symbol', r'vector-ref'),
+    
     'car': Token_type('symbol', r'car'),
     'cdr': Token_type('symbol', r'cdr'),
     'reverse': Token_type('symbol', r'reverse'),
@@ -108,7 +114,7 @@ KEY_WORDS = {
 
 TOKEN_TYPES = {
     #constants 
-    'constant "string"': Token_type('string', r'\"(?:\\.|[^\"\\])*\"'),  
+    'constant "string"': Token_type('string', r'".*?"'),  
 
     '-': Token_type('symbol', r'\-'), 
     'eof': Token_type('eof', r'eof'), 
@@ -120,12 +126,17 @@ TOKEN_TYPES = {
     'constant "hexadecimal"': Token_type('number', r'#x[0-9A-Fa-f]+'),
     'constant "char"': Token_type('string', r'"[^"]+"'),  
     'constant "quote_tilda"': Token_type('quote constant', r'\`(?:\\.|[^"\\])*'),  
-    #'constant "quote"': Token_type('quote constant', r'\'(?:\\.|[^"\\])*'),  
+    'quote': Token_type('symbol', r'quote'),
+    'quote': Token_type('quote', r"'"),
     'constant "true"': Token_type('boolean', r'#t'),
     'constant "false"': Token_type('boolean', r'#f'),
     'constant symbols': Token_type("symbols constant", r"'\([^)]+\)|'[^ )]+"),
+    'set': Token_type("symbol", r'set!'),
+    'begin': Token_type("symbol", r'begin'),
 
     #key words
+
+    
     'import': Token_type('symbol', r'import'),
     'if': Token_type('symbol', r'if'),
     'else': Token_type('symbol', r'else'),
@@ -148,7 +159,6 @@ TOKEN_TYPES = {
     'and': Token_type('symbol', r'and'),
     'or': Token_type('symbol', r'or'),
     
-    'quote': Token_type('symbol', r'quote'),
     'list-tail': Token_type('symbol', r'list-tail'),
     'list-ref': Token_type('symbol', r'list-ref'),
     'list?': Token_type('symbol', r'list\?'),
@@ -158,6 +168,11 @@ TOKEN_TYPES = {
      #key words functions
     'set-car!': Token_type('symbol', r'set-car!'),
     'set-cdr!': Token_type('symbol', r'set-cdr!'),
+
+    'vector-set!': Token_type('symbol', r'vector-set!'),
+    'make-list': Token_type('symbol', r'make-list'),
+    'vector-ref': Token_type('symbol', r'vector-ref'),
+    
     'car': Token_type('symbol', r'car'),
     'cdr': Token_type('symbol', r'cdr'),
     'reverse': Token_type('symbol', r'reverse'),

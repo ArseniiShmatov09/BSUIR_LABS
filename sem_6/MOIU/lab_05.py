@@ -185,7 +185,7 @@ def potential_method_second_phase(plan:list):
 
 def main():
 
-    plan = first_basis_plan(tests['1'])
+    plan = first_basis_plan(tests['3'])
     res = potential_method_second_phase(plan)
 
     print(res)

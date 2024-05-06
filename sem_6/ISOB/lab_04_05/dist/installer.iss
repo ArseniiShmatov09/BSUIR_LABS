@@ -13,7 +13,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{3033217B-AFDA-4DC9-8B37-ECC037423BF3}
+AppId={{E86F1AF6-AFAA-4183-BE0C-AE0ACF112A93}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -26,8 +26,9 @@ ChangesAssociations=yes
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
+OutputDir=C:\Users\shmat\OneDrive\Рабочий стол
 OutputBaseFilename=mysetup
-Password=111
+Password=123
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

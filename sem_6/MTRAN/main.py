@@ -8,10 +8,10 @@ from interpreter import Interpreter
 
 def main():
  
-    with open('C:\\D\BSUIR\\sem_6\\MTRAN\\input.txt', 'r', encoding='utf-8') as f:
+    with open('C:\\D\BSUIR\\sem_6\\MTRAN\\INPUT1.scm', 'r', encoding='utf-8') as f:
         code = f.read()
     
-    print('\n', code, '\n')
+   # print('\n', code, '\n')
     lexer = Lexer(code)
     brackets_balanced, error_position = lexer.check_brackets()
 
@@ -23,7 +23,8 @@ def main():
     print(result[1])
     parser = Parser(tokens)
     expressions = parser.parse()
-   # construct_tree(expressions)
+    #print(expressions)
+  # construct_tree(expressions)
     interpreter = Interpreter(expressions)
     interpreter.interpret()
 

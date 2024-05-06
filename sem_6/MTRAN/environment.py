@@ -20,6 +20,11 @@ class Environment:
         self.closest_env = closest_env
 
 
+    def get_key_by_value(self, value):
+        for key, val in self.declarations.items():
+            if val == value:
+                return key
+        return None
     @staticmethod
     def _is_arrays(keys, values):
         return isinstance(keys, list) == isinstance(values, list)
@@ -34,7 +39,8 @@ class Environment:
         if self.closest_env:
             self.closest_env.set(key, value)
             return
-        raise ValueError("Variable not defined in the current scope.")
+        else:
+            self.declarations[key] = value
 
     def get(self, key):
         if key in self.declarations:

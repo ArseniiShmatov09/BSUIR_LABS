@@ -19,10 +19,16 @@ class CallExpr(Expr):
         self.called = called
         self.args = args
 
+class SetExpr(Expr):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
 class LambdaExpr(Expr):
-    def __init__(self, args, body):
+    def __init__(self, args, body, isSpread = False):
         self.args = args
         self.body = body
+        self.isSpread = isSpread
 
 class IfExpr(Expr):
     def __init__(self, condition, trueExpr, falseExpr):
@@ -37,5 +43,18 @@ class QuoteExpr:
 class ListExpr(Expr):
     def __init__(self, items):
         self.items = items
+
+class BeginExpr(Expr):
+    def __init__(self, expression):
+        self.expression = expression
+
+class ImportExpr(Expr):
+    def __init__(self, value):
+        self.value = value
+
+class ReturnExpr(Expr):
+    def __init__(self, value):
+        self.value = value
+
 
 NULL_VALUE = []

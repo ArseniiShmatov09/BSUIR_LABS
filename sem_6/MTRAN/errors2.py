@@ -4,5 +4,7 @@ class SyntaxError(Exception):
 class SemanticError(Exception):
     pass
 
+class RuntimeError(Exception):
+    pass
 
 

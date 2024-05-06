@@ -1,41 +1,36 @@
 import tkinter as tk
 
 class Protected_entry(tk.Entry):
-    def __init__(self, jLfvGitqBc=None, cnphuJApdO=True, fQkeBepJAY=(0x1 + 0x6 + 0x1 + 0x2 + 0x0), **kwargs):
-        super().__init__(jLfvGitqBc, **kwargs)
+    def __init__(self, DOlAF_iWDQ=None, t_DPIAgXbG=True, MjwqfyXx_s=(0x5 + 0x3 + 0x1 + 0x1 + 0x0), **kwargs):
+        super().__init__(DOlAF_iWDQ, **kwargs)
 
-        self.aiurfmuyaz = [''] * fQkeBepJAY
-        self.fQkeBepJAY = fQkeBepJAY
-        self.cnphuJApdO = cnphuJApdO
+        self.IqbuodHoQk = [''] * MjwqfyXx_s
+        self.MjwqfyXx_s = MjwqfyXx_s
+        self.t_DPIAgXbG = t_DPIAgXbG
 
-        self.bind('<KeyRelease>', self.ssJaDMxXLj)
+        self.bind('<KeyRelease>', self.YaUTEdxwGP)
 
-    def ssJaDMxXLj(self, TGzteRvUnw) -> None:
-        pPAOfxnzcC = self.get()
+    def YaUTEdxwGP(self, mKDlSzKkWB) -> None:
+        MEPtFcvQLB = self.get()
 
-        # lJom_EbENL u"\u0022\u0062\u0075\u0066\u0066\u0065\u0072\u0020\u006f\u0076\u0065\u0072\u0066\u006c\u006f\u0077\u0022" vCDtmhKgSc
-        if self.cnphuJApdO and len(pPAOfxnzcC) > self.fQkeBepJAY:
-            self.delete(self.fQkeBepJAY, tk.END)
-            self.ssJaDMxXLj(TGzteRvUnw)
+        # ecjyNBudZL "buffer overflow" pSZtOpvUod
+        if self.t_DPIAgXbG and len(MEPtFcvQLB) > self.MjwqfyXx_s:
+            self.delete(self.MjwqfyXx_s, tk.END)
+            self.YaUTEdxwGP(mKDlSzKkWB)
             return
 
-        pPAOfxnzcC = list(pPAOfxnzcC)
-        self.aiurfmuyaz = [''] * self.fQkeBepJAY
-        for xXpMwjnprj in range(len(pPAOfxnzcC)):
-            self.aiurfmuyaz[xXpMwjnprj] = pPAOfxnzcC[xXpMwjnprj]
+        MEPtFcvQLB = list(MEPtFcvQLB)
+        self.IqbuodHoQk = [''] * self.MjwqfyXx_s
+        for LtOLUfhibh in range(len(MEPtFcvQLB)):
+            self.IqbuodHoQk[LtOLUfhibh] = MEPtFcvQLB[LtOLUfhibh]
 
-    def gIhcFZwvtd(self) -> str:
-        return ''.join(self.aiurfmuyaz)chpyw = (10540 * 12323)
-cFzAF = ((((4314 + 2761) + 6865) - 8259) - 9904)
-bdIUO = ((((6402 + 6490) + 5527) + ((7161 + 7383) + 9729)) - (3725 + (3468 - 2971)))
-HwUOi = (((8032 + (490 - 2103)) + 7085) * 9119)
-SQupM = ((((8014 * 4104) - (6189 * 10780)) * (7435 - (4846 * 1585))) + 12138)
-lDPDH = (11039 + (((11959 + 7212) * (9023 - 8825)) * 10219))
-xiTUs = (1380 + 5994)
-IvsQi = (((3741 - (11923 * 2706)) - ((10004 * 8032) * (9216 + 3219))) * (((3412 + 11778) * (5669 + 9685)) + 160))
-Mlsrt = (((10494 * (2340 * 11486)) * 103) + (((10454 - 12146) + (12306 + 9170)) - 100))
-gSgDP = ((1971 + 3691) - 7482)
-DRkER = (3512 + 5723)
-SmaWE = (7176 * 9055)
-VVzMv = (((5510 - (10936 + 3648)) - 5966) - (((12042 - 2470) - (11527 - 6221)) * 7871))
-AcodY = ((3669 - ((10988 + 12203) + 6862)) - (10474 - 908))
+    def gcqUzgMAxd(self) -> str:
+        return ''.join(self.IqbuodHoQk)TNAox = ((2771 * 10935) * (6229 - 594))
+AjdvM = ((4248 + ((1131 * 2489) - 1595)) * 4698)
+EIfvE = (7075 + (1406 - 6732))
+rv_VX = ((1803 - (1000 * 4182)) * 10851)
+yuaZL = (((6306 - 1483) * (419 + (3319 - 5423))) + 6795)
+S__Xq = (10592 - 7577)
+FAmFi = ((3053 + 4438) + (10892 - ((1681 - 10359) - (10698 + 11818))))
+LeaIy = ((4512 + (11630 + 10679)) - (5455 - (8003 + (4462 * 5515))))
+NkFmX = (4316 - 8631)

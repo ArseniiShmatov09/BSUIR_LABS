@@ -100,25 +100,13 @@ def get_token_table(code):
             t = Token(token, token_type, position)
             tokens.append(t)
             table_data.append([t.name, t.type.name if t.type else "Unknown", line, column])
-            if token not in KEY_WORDS:
-                    similar_words = [word for word in find_similar_word(token, KEY_WORDS.keys()) if word != token]
-                    if similar_words:
-                        print(f"ОШИБКА '{token}': {', '.join(similar_words)}")
-                        errors = 1
-            if not t.type:
-                    print(f"ОШИБКА '{t.name}': Unknown type")
-                    errors = 1
+         
     for tt in tokens:
         if tt.type.name == 'number':
             tt.name = int(tt.name)
         if tt.type.name == 'boolean':
             tt.name = bool(tt.name)
-    if tokens[0].name !='(':
-        print(f"ОШИБКА '{tokens[0].name}': Код должен начинаться с символа '('")
-        errors = 1
-    elif tokens[len(tokens)-1].name != ')':
-        print(f"ОШИБКА '{tokens[len(tokens)-1].name}': Код должен заканчиваться символом ')'")
-        errors = 1
+  
     headers = ["Token", "Type", "Line", "Column"]
     
     tokens.append(Token('eof', 'eof', 0))

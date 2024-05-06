@@ -1,6 +1,6 @@
 from Token import Token
 from Token_type import Token_type
-from expressions import CallExpr, DefineExpr, IfExpr, LambdaExpr, LiteralExpr, NULL_VALUE, SymbolExpr, ListExpr, QuoteExpr
+from expressions import *
 
 class Parser:
     def __init__(self, tokens):
@@ -27,14 +27,43 @@ class Parser:
                 return self.if_()
             if token.name == 'quote':
                 return self.quote()
+            if token.name == 'set!':
+                return self.set()
+            if token.name == 'begin':
+                return self.begin()
+            if token.name == 'import':
+                return self.import_()
+            if token.name == 'return':
+                return self.return_()
+            
+            
             return self.call()
         return self.atom()
+
+    def return_(self):
+        self.advance()
+        value = self.expression()
+        self.advance()
+        return ReturnExpr(value)
+
+    def import_(self):
+        self.advance()
+        value = self.expression()
+        self.advance()
+        return ImportExpr(value)
+
+    def begin(self):
+        self.advance()
+        expr = []
+        while not self.match('closedBracket'):
+            expr.append(self.expression())
+        return BeginExpr(expr)
 
     def call(self):
         called = self.expression()
 
         if called.token.type.name != 'symbol':
-            raise SyntaxError(f"Неизвестный токен [{called.token.pos} : {called.token.name}")
+            raise SyntaxError(f"Неизвестный токен [{called.token.pos} : {called.token.name}]")
 
         args = []
         while not self.match('closedBracket'):
@@ -42,9 +71,26 @@ class Parser:
 
         return CallExpr(called, args)
 
+    def set(self):
+        self.advance()
+        name = None
+        if str(self.peek().type.name) == 'symbol':
+            name = self.advance()
+        else:
+            raise SyntaxError("Unexpected token")
+        
+        value = self.expression()
+
+        if self.peek().type.name == 'closedBracket':
+            self.advance()
+        else:
+            raise SyntaxError("Unexpected token")
+        
+        return SetExpr(name, value)
+
     def quote(self):
         self.advance()
-        value = self.quoteValue()
+        value = self.quote_value()
 
         if self.peek().type.name == 'closedBracket':
             self.advance()
@@ -53,15 +99,20 @@ class Parser:
 
         return QuoteExpr(value)
 
-    def quoteValue(self):
+    def quote_value(self):
         if self.match('openedBracket'):
             args = []
-            while not self.match('closedBracket'):
+            while self.peek().type.name != 'closedBracket':
+                if self.peek().type.name == 'openedBracket':
+                    args.append(self.quote_value())
+                    continue
                 params = self.expression()
                 args.append(params)
-            return ListExpr(args)
+            self.advance()
+            quoted = ListExpr(args)
         else:
-            return self.expression()
+            quoted = self.expression()
+        return quoted
 
     def define(self):
         self.advance()
@@ -104,20 +155,19 @@ class Parser:
     def if_(self):
         self.advance()
         condition = self.expression()
-        trueExpr = self.expression()
-
-        falseExpr = None
-        if self.peek().type.name == 'openedBracket':
-            falseExpr = self.expression()
-
-        if not self.match('closedBracket'):
-            raise SyntaxError('Не закрыта скобка')
-
-        return IfExpr(condition, trueExpr, falseExpr)
+        true_expr = self.expression()
+        false_expr = None
+        if not self.match('closedBracket') or self.match('openedBracket'):
+            false_expr = self.expression()
+        if false_expr:
+            self.advance()
+        return IfExpr(condition, true_expr, false_expr)
 
     def atom(self):
         if self.match('symbol'):
             return SymbolExpr(self.previous())
+        elif self.match('quote'):
+            return self.quote_value()
         elif self.match('boolean') or self.match('string') or self.match('number'):
             return LiteralExpr(self.previous())
         else:

@@ -155,7 +155,7 @@ def generate_junk_code():
 
 def obfuscate(code):
     result = rename_vars(code)
-    result = replace_strings(result)
+    #result = replace_strings(result)
     result = replace_numbers(result)
     result += generate_junk_code()
 
