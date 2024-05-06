@@ -2,7 +2,6 @@
                       (make-list f_row (make-list s_col 0))
                       )
   )
-
 (define multiply_matrix (lambda (f_m s_m)
                           (define i 0)
                           (define j 0)
@@ -51,17 +50,40 @@
                             )
                           )
   )
-
-
 (define first_matrix #(#(1 2 3) #(4 5 6) #(7 8 9)))
 (define second_matrix #(#(1 2 3) #(4 5 6) #(7 8 9)))
-
 (displayln (multiply_matrix first_matrix second_matrix))
-
-
-
 (define dg 1)
-
 (set! dg 5)
-
 (display dg)
+(define factorial
+   (lambda (n)
+     (if (= n 0)
+         1
+         (* n (factorial (- n 1))))))
+ (display (factorial 5))
+(define x 23)
+ (if (< x 10)
+    (display 3)
+    (if (> x 20)
+         (display 1)
+     (display 2)))
+(define a (+ 1 (+ 1 1)))
+(display a)
+(define test (lambda (n) (+ n 1)))
+(define a "test:")
+(display a)
+(display (test 1))
+
+(define my-array (quote (1 2 3 4 5)))
+(display (cdr my-array)) ; Выводит (2 3 4 5)
+(display (car my-array)) ; Выводит 1
+
+(display (null? 4))
+
+(display (number? 1))
+
+(define (add-a str)
+  (string-append str "HELLO"))
+
+(display (add-a "4")) ; Выводит "Helloa"

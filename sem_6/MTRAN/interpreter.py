@@ -42,7 +42,7 @@ class Interpreter:
         self.env.define("boolean?", lambda a: isinstance(a, bool))
         self.env.define("string?", lambda a: isinstance(a, str))
         self.env.define("list?", lambda a: isinstance(a, list))
-        self.env.define("string-append", lambda str1, str2: str1 + str2)
+        self.env.define("string-append", lambda str1, str2: str_append(str1, str2))
         self.env.define("quote", lambda arg: arg)
         self.env.define("length", lambda arg: length_procedure(arg))     
         self.env.define("car", lambda arg: arg[0])
@@ -53,7 +53,16 @@ class Interpreter:
         self.env.define('make-list', lambda size, value: make_list(size, value))
         self.env.define('displayln', lambda arg: print(self.to_lisp_types(arg)))
 
+        def str_append(str1, str2):
+            if not isinstance(str1, str):
+                raise SemanticError(f"In procedure 'string-append' Wrong type '{str1}'")
+            if not isinstance(str2, str):
+                raise SemanticError(f"In procedure 'string-append' Wrong type '{str2}'")
+            result = str2 + str1
+            result = result.replace('"', "")
 
+            return result
+        
         def length_procedure(arg):
             if not isinstance(arg, list):
                 raise SemanticError(f"In procedure 'length' Wrong type '{arg}'")

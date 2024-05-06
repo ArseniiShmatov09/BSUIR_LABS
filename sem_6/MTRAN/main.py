@@ -20,7 +20,7 @@ def main():
    
     result = get_token_table(code) 
     tokens = result[0]
-    print(result[1])
+   # print(result[1])
     parser = Parser(tokens)
     expressions = parser.parse()
     #print(expressions)
